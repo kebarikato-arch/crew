@@ -4,11 +4,10 @@ import SwiftUI
 import SwiftData
 
 struct HomeView: View {
-    // MARK: 【✅ 修正】boatsを@Queryで直接取得するように変更
+    // (このビューの他の部分は変更ありません)
     @Query(sort: \Boat.name, animation: .default) private var boats: [Boat]
     @Binding var selectedBoatID: String?
     
-    // currentBoatのロジックをHomeView内に移動
     private var currentBoat: Boat? {
         if let boatID = selectedBoatID,
            let selectedID = UUID(uuidString: boatID),
@@ -37,10 +36,8 @@ struct HomeView: View {
     var body: some View {
         NavigationView {
             if boats.isEmpty {
-                // --- ボートが一つもない場合に「ようこそ画面」を表示 ---
                 NoBoatView(isAddingBoat: $isAddingBoat)
             } else if let boat = currentBoat {
-                // --- ボートが存在する場合に「ダッシュボード画面」を表示 ---
                 VStack(spacing: 0) {
                     VStack(spacing: 15) {
                         HStack(alignment: .center) {
@@ -93,7 +90,6 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $isAddingBoat) {
-            // HomeViewからボート追加画面をシートで表示
             AddBoatView(selectedBoatID: $selectedBoatID)
         }
     }
@@ -105,7 +101,6 @@ struct HomeView: View {
     }
 }
 
-// MARK: - ボートがない場合に表示するビュー
 struct NoBoatView: View {
     @Binding var isAddingBoat: Bool
     
@@ -120,7 +115,6 @@ struct NoBoatView: View {
     }
 }
 
-// MARK: - ボート追加用のビュー
 struct AddBoatView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -145,9 +139,17 @@ struct AddBoatView: View {
     }
     
     private func addBoat() {
-        let newBoat = Boat(name: boatName, dataSets: [], checklist: [], rigItemTemplates: [])
+        // MARK: 【✅ 修正】新しいボートにデフォルトのテンプレートを追加する
+        let defaultTemplates = [
+            RigItemTemplate(name: "フォアステイ", unit: "%"),
+            RigItemTemplate(name: "D1シュラウド", unit: "%"),
+            RigItemTemplate(name: "V2シュラウド", unit: "%"),
+            RigItemTemplate(name: "バックステイ", unit: "lbs")
+        ]
+        
+        let newBoat = Boat(name: boatName, dataSets: [], checklist: [], rigItemTemplates: defaultTemplates)
         modelContext.insert(newBoat)
-        // MARK: 【✅ 修正】エラーハンドリングを追加
+        
         do {
             try modelContext.save()
             selectedBoatID = newBoat.id.uuidString
@@ -158,7 +160,6 @@ struct AddBoatView: View {
 }
 
 #Preview {
-    // ContentViewをプレビュー用に修正
     ContentView()
         .modelContainer(for: Boat.self, inMemory: true)
 }
