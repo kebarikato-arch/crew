@@ -141,6 +141,6 @@ final class Boat: Identifiable {
         
         let dataSet1 = RigDataSet(date: Calendar.current.date(byAdding: .day, value: -7, to: Date())!, memo: "強風用セッティング", elements: items1)
         
-        return Boat(name: "マイ・レーサー", dataSets: [dataSet1], checklist: initialChecklist)
+        return Boat(name: "あしけり100", dataSets: [dataSet1], checklist: initialChecklist)
     }
 }

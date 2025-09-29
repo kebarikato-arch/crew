@@ -3,16 +3,16 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - カスタムToggleStyle (変更なし)
+// MARK: - カスタムToggleStyle
 struct CheckboxToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack {
             configuration.label
                 .strikethrough(configuration.isOn)
                 .foregroundColor(configuration.isOn ? .secondary : .primary)
-            
+
             Spacer()
-            
+
             Image(systemName: configuration.isOn ? "checkmark.circle.fill" : "circle")
                 .resizable()
                 .frame(width: 24, height: 24)
@@ -28,24 +28,23 @@ struct CheckboxToggleStyle: ToggleStyle {
 // MARK: - メインビュー
 
 struct CheckListView: View {
-    // MARK: 修正1: @Bindable を使用して Boat オブジェクトを受け取る (変更なし)
     @Bindable var boat: Boat
+    @Environment(\.modelContext) private var modelContext
     
-    // MARK: 【✅ 修正 2】カテゴリでフィルタリングされた生の配列を返す関数
+    // MARK: 【✅ 新規追加】項目追加用のシート表示状態
+    @State private var showingAddItemSheet = false
+    @State private var selectedCategory: CheckListItem.Category = .beforeSail
+
     private func filteredChecklist(for category: CheckListItem.Category) -> [CheckListItem] {
         return boat.checklist.filter { $0.category == category }
     }
-    
+
     var body: some View {
         NavigationView {
             Form {
                 ForEach(CheckListItem.Category.allCases, id: \.self) { category in
                     Section(header: Text(category.rawValue)) {
-                        
-                        // MARK: 【✅ 修正 3】フィルタリング済みの生の配列を ForEach に渡し、要素を直接受け取る
                         ForEach(filteredChecklist(for: category)) { item in
-                            // MARK: 【✅ 修正 4】カスタム Binding を作成
-                            // item は @Model なので、プロパティの変更は自動で永続化される
                             Toggle(isOn: Binding(
                                 get: { item.isCompleted },
                                 set: { newValue in item.isCompleted = newValue }
@@ -54,13 +53,88 @@ struct CheckListView: View {
                             }
                             .toggleStyle(CheckboxToggleStyle())
                         }
+                        // MARK: 【✅ 新規追加】削除処理
+                        .onDelete { indexSet in
+                            deleteItems(at: indexSet, for: category)
+                        }
                     }
                 }
             }
             .navigationTitle("チェックリスト")
+            // MARK: 【✅ 新規追加】ツールバーに編集ボタンを追加
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingAddItemSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            // MARK: 【✅ 新規追加】項目追加用のシート
+            .sheet(isPresented: $showingAddItemSheet) {
+                AddChecklistItemView(boat: boat)
+            }
+        }
+    }
+    
+    // MARK: 【✅ 新規追加】チェックリスト項目を削除する関数
+    private func deleteItems(at offsets: IndexSet, for category: CheckListItem.Category) {
+        let itemsToDelete = offsets.map { filteredChecklist(for: category)[$0] }
+        for item in itemsToDelete {
+            modelContext.delete(item)
         }
     }
 }
+
+// MARK: - 【✅ 新規追加】チェックリスト項目を追加するためのビュー
+struct AddChecklistItemView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) private var modelContext
+    
+    @Bindable var boat: Boat
+    
+    @State private var itemName: String = ""
+    @State private var selectedCategory: CheckListItem.Category = .beforeSail
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("新しい項目")) {
+                    TextField("項目名", text: $itemName)
+                    Picker("カテゴリ", selection: $selectedCategory) {
+                        ForEach(CheckListItem.Category.allCases, id: \.self) { category in
+                            Text(category.rawValue).tag(category)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+            .navigationTitle("項目を追加")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("キャンセル") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        addItem()
+                        dismiss()
+                    }
+                    .disabled(itemName.isEmpty)
+                }
+            }
+        }
+    }
+    
+    private func addItem() {
+        let newItem = CheckListItem(name: itemName, isCompleted: false, category: selectedCategory)
+        boat.checklist.append(newItem)
+    }
+}
+
 
 #Preview {
     let exampleBoat = Boat.dummy
