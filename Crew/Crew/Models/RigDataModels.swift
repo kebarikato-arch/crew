@@ -4,6 +4,24 @@ import Foundation
 import SwiftUI
 import SwiftData
 
+// MARK: - 【✅ 新規追加】リグアイテムのテンプレート用モデル
+@Model
+final class RigItemTemplate: Identifiable {
+    @Attribute(.unique) var id: UUID
+    var name: String
+    var unit: String
+    
+    //どのボートに所属するかのリレーション
+    var boat: Boat?
+    
+    init(id: UUID = UUID(), name: String, unit: String) {
+        self.id = id
+        self.name = name
+        self.unit = unit
+    }
+}
+
+
 // MARK: - 4. CheckListItem モデル
 @Model
 final class CheckListItem: Identifiable {
@@ -32,7 +50,6 @@ final class RigItem: Identifiable {
     
     var status: Status
     
-    // RigItemのメンバー型としてStatusを定義
     enum Status: String, CaseIterable, Codable {
         case normal = "正常"
         case maintenance = "確認推奨"
@@ -46,7 +63,6 @@ final class RigItem: Identifiable {
         self.status = status
     }
     
-    // 計算プロパティはそのまま
     var progressRatio: Double {
         switch status {
         case .normal: return 1.0
@@ -79,7 +95,6 @@ final class RigDataSet: Identifiable, Comparable {
         self.elements = elements
     }
     
-    // Comparable プロトコルの実装
     static func < (lhs: RigDataSet, rhs: RigDataSet) -> Bool {
         lhs.date > rhs.date
     }
@@ -92,7 +107,6 @@ final class RigDataSet: Identifiable, Comparable {
 // MARK: - 1. Boat モデル (メインデータ)
 @Model
 final class Boat: Identifiable {
-    // ✅ 複数ボート管理のためにユニークIDを追加
     @Attribute(.unique) var id: UUID
     var name: String
     
@@ -102,29 +116,27 @@ final class Boat: Identifiable {
     @Relationship(deleteRule: .cascade)
     var checklist: [CheckListItem]
     
-    // ✅ イニシャライザを更新
-    init(id: UUID = UUID(), name: String, dataSets: [RigDataSet], checklist: [CheckListItem]) {
+    // MARK: 【✅ 修正】リグアイテムのテンプレートを永続化するプロパティに変更
+    @Relationship(deleteRule: .cascade, inverse: \RigItemTemplate.boat)
+    var rigItemTemplates: [RigItemTemplate]
+    
+    // MARK: 【✅ 修正】イニシャライザを更新
+    init(id: UUID = UUID(), name: String, dataSets: [RigDataSet], checklist: [CheckListItem], rigItemTemplates: [RigItemTemplate] = []) {
         self.id = id
         self.name = name
         self.dataSets = dataSets
         self.checklist = checklist
+        self.rigItemTemplates = rigItemTemplates
     }
     
     var latestDataSet: RigDataSet? {
         return dataSets.sorted().first
     }
     
-    var rigItemTemplate: [RigItem] {
-        return [
-            RigItem(name: "フォアステイ", value: "0", unit: "%", status: .normal),
-            RigItem(name: "D1シュラウド", value: "0", unit: "%", status: .normal),
-            RigItem(name: "V2シュラウド", value: "0", unit: "%", status: .normal),
-            RigItem(name: "スプレッダー角度", value: "0", unit: "°", status: .normal),
-            RigItem(name: "バックステイ", value: "0", unit: "lbs", status: .normal)
-        ]
-    }
+    // MARK: 【✅ 削除】ハードコードされたテンプレートを削除
+    // var rigItemTemplate: [RigItem] { ... }
     
-    // ✅ ダミーデータ生成ロジックを更新
+    // MARK: 【✅ 修正】ダミーデータ生成ロジックを更新
     static var dummy: Boat {
         let items1: [RigItem] = [
             RigItem(name: "フォアステイ", value: "30", unit: "%", status: .normal),
@@ -141,6 +153,15 @@ final class Boat: Identifiable {
         
         let dataSet1 = RigDataSet(date: Calendar.current.date(byAdding: .day, value: -7, to: Date())!, memo: "強風用セッティング", elements: items1)
         
-        return Boat(name: "あしけり100", dataSets: [dataSet1], checklist: initialChecklist)
+        // ダミーのテンプレートアイテム
+        let templates = [
+            RigItemTemplate(name: "フォアステイ", unit: "%"),
+            RigItemTemplate(name: "D1シュラウド", unit: "%"),
+            RigItemTemplate(name: "V2シュラウド", unit: "%"),
+            RigItemTemplate(name: "スプレッダー角度", unit: "°"),
+            RigItemTemplate(name: "バックステイ", unit: "lbs")
+        ]
+        
+        return Boat(name: "マイ・レーサー", dataSets: [dataSet1], checklist: initialChecklist, rigItemTemplates: templates)
     }
 }

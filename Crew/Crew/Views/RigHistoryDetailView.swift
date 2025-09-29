@@ -4,17 +4,13 @@ import SwiftUI
 import SwiftData
 
 struct RigHistoryDetailView: View {
-    // MARK: 【✅ 修正済み】Boat は @Bindable で受け取る
-    @Bindable var boat: Boat // AddRigDataViewへのバインドを考慮
-    
-    // MARK: 【✅ 修正済み】dataSet はそのまま受け取る
+    @Bindable var boat: Boat
     let dataSet: RigDataSet
     
     @Environment(\.dismiss) var dismiss
-    // MARK: 【✅ 修正済み】ModelContext を追加
     @Environment(\.modelContext) private var modelContext
     @State private var showingDeleteAlert = false
-    @State private var showingEditSheet = false // 編集機能用
+    @State private var showingEditSheet = false
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -56,7 +52,6 @@ struct RigHistoryDetailView: View {
                     VStack(spacing: 1) {
                         ForEach(dataSet.elements.sorted(by: { $0.name < $1.name })) { item in
                             NavigationLink {
-                                // RigItemDetailView に Boat のデータセット全体を渡す
                                 RigItemDetailView(item: item, allDataSets: boat.dataSets)
                             } label: {
                                 RigItemSettingRow(item: item)
@@ -73,28 +68,38 @@ struct RigHistoryDetailView: View {
                 
                 Divider()
                 
-                // MARK: 編集・削除ボタンを追加
-                HStack {
+                // MARK: 【✅ 修正】アクションボタンエリア
+                VStack(spacing: 10) {
+                    // MARK: この設定を再現ボタン
                     Button {
-                        showingEditSheet = true
+                        reproduceDataSet()
                     } label: {
-                        Label("編集", systemImage: "pencil")
+                        Label("この設定を再現する", systemImage: "arrow.counterclockwise.circle.fill")
+                            .frame(maxWidth: .infinity)
                     }
-                    .padding(.vertical, 5).padding(.horizontal).buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
                     
-                    Spacer()
-                    
-                    Button(role: .destructive) {
-                        showingDeleteAlert = true
-                    } label: {
-                        Label("削除", systemImage: "trash.fill")
+                    HStack {
+                        Button {
+                            showingEditSheet = true
+                        } label: {
+                            Label("編集", systemImage: "pencil")
+                        }
+                        .buttonStyle(.bordered)
+                        
+                        Spacer()
+                        
+                        Button(role: .destructive) {
+                            showingDeleteAlert = true
+                        } label: {
+                            Label("削除", systemImage: "trash.fill")
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .padding(.vertical, 5).padding(.horizontal).buttonStyle(.bordered)
                 }
                 .padding(.horizontal)
                 
                 Divider()
-                // ... (後略)
             }
         }
         .navigationTitle("ログ詳細")
@@ -105,23 +110,40 @@ struct RigHistoryDetailView: View {
             Text("このリグ設定ログを本当に削除しますか？")
         }
         .sheet(isPresented: $showingEditSheet) {
-            // AddRigDataView を編集モードで表示
-            // @Bindable boat をそのまま渡す
             AddRigDataView(boat: boat, dataSetToEdit: dataSet)
         }
     }
     
-    // MARK: 【✅ 修正済み】ModelContext を使った削除ロジック
     private func deleteDataSet() {
-        // RigDataSet の削除とカスケード削除により関連 RigItem も削除される
         modelContext.delete(dataSet)
+        dismiss()
+    }
+    
+    // MARK: 【✅ 新規追加】設定を再現する関数
+    private func reproduceDataSet() {
+        // 過去のRigItemを新しいインスタンスとしてコピー
+        let copiedItems = dataSet.elements.map { item in
+            return RigItem(name: item.name, value: item.value, unit: item.unit, status: item.status)
+        }
+        
+        // 新しいデータセットを作成
+        let newDataSet = RigDataSet(
+            date: Date(), // 日付は現在の日時
+            memo: "「\(dataSet.memo.isEmpty ? dateFormatter.string(from: dataSet.date) : dataSet.memo)」の設定を再現",
+            elements: copiedItems
+        )
+        
+        // Boatのデータセットに追加
+        boat.dataSets.append(newDataSet)
+        
+        // 画面を閉じる
         dismiss()
     }
 }
 
 // RigItemSettingRow の定義は省略します
 struct RigItemSettingRow: View {
-    let item: RigItem // 以前のコードには定義がありませんが、UIパーツとして存在すると想定
+    let item: RigItem
     var body: some View {
         HStack {
             Text(item.name).foregroundColor(.primary)

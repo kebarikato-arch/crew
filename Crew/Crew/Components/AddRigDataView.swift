@@ -1,4 +1,4 @@
-// AddRigDataView.swift の全文
+/// AddRigDataView.swift の全文
 
 import SwiftUI
 import SwiftData
@@ -12,7 +12,11 @@ struct AddRigDataView: View {
     
     @State private var recordDate: Date
     @State private var memo: String
-    @State private var editableItems: [RigItem]
+    
+    // MARK: 【✅ 修正】編集対象のアイテムを RigItemTemplate から生成するように変更
+    private var templates: [RigItemTemplate] {
+        boat.rigItemTemplates.sorted(by: { $0.name < $1.name })
+    }
     
     // Formの各RigItemの値をバインドするための中間表現
     @State private var itemValues: [String]
@@ -27,24 +31,33 @@ struct AddRigDataView: View {
             self._recordDate = State(initialValue: existingSet.date)
             self._memo = State(initialValue: existingSet.memo)
             
-            let copiedItems = existingSet.elements.map { item in
-                return RigItem(name: item.name, value: item.value, unit: item.unit, status: item.status)
+            // テンプレートに基づいて編集中の値を初期化
+            let sortedTemplates = boat.rigItemTemplates.sorted(by: { $0.name < $1.name })
+            var values: [String] = []
+            var statuses: [RigItem.Status] = []
+            
+            for template in sortedTemplates {
+                if let existingItem = existingSet.elements.first(where: { $0.name == template.name }) {
+                    values.append(existingItem.value)
+                    statuses.append(existingItem.status)
+                } else {
+                    // 既存データにテンプレート項目がなければデフォルト値
+                    values.append("0")
+                    statuses.append(.normal)
+                }
             }
-            self._editableItems = State(initialValue: copiedItems)
-            self._itemValues = State(initialValue: copiedItems.map { $0.value })
-            self._itemStatuses = State(initialValue: copiedItems.map { $0.status })
+            self._itemValues = State(initialValue: values)
+            self._itemStatuses = State(initialValue: statuses)
             
         } else {
             // --- 新規モード ---
             self._recordDate = State(initialValue: Date())
             self._memo = State(initialValue: "")
             
-            let copiedTemplate = boat.rigItemTemplate.map { item in
-                return RigItem(name: item.name, value: "0", unit: item.unit, status: .normal)
-            }
-            self._editableItems = State(initialValue: copiedTemplate)
-            self._itemValues = State(initialValue: copiedTemplate.map { $0.value })
-            self._itemStatuses = State(initialValue: copiedTemplate.map { $0.status })
+            // MARK: 【✅ 修正】Boatに保存されているテンプレートから初期値を生成
+            let count = boat.rigItemTemplates.count
+            self._itemValues = State(initialValue: Array(repeating: "0", count: count))
+            self._itemStatuses = State(initialValue: Array(repeating: .normal, count: count))
         }
     }
     
@@ -57,14 +70,15 @@ struct AddRigDataView: View {
                 }
                 
                 Section(header: Text("リグ設定値")) {
-                    ForEach(editableItems.indices, id: \.self) { index in
+                    // MARK: 【✅ 修正】テンプレートの配列を元にループ処理
+                    ForEach(templates.indices, id: \.self) { index in
                         VStack(alignment: .leading) {
-                            Text(editableItems[index].name)
+                            Text(templates[index].name)
                                 .font(.headline)
                             HStack {
                                 TextField("値", text: $itemValues[index])
                                     .keyboardType(.decimalPad)
-                                Text(editableItems[index].unit)
+                                Text(templates[index].unit)
                                 Spacer()
                                 Picker("状態", selection: $itemStatuses[index]) {
                                     ForEach(RigItem.Status.allCases, id: \.self) { status in
@@ -94,23 +108,20 @@ struct AddRigDataView: View {
         }
     }
     
-    // ✅ ② saveData() にロジックを実装
     private func saveData() {
-        // Stateから永続化用のRigItem配列を生成
-        let finalItems = editableItems.indices.map { index -> RigItem in
-            let item = editableItems[index]
-            // 新しいインスタンスを返すことで、SwiftDataが変更を検知
+        // MARK: 【✅ 修正】永続化用のRigItem配列をテンプレートを元に生成
+        let finalItems = templates.indices.map { index -> RigItem in
+            let template = templates[index]
             return RigItem(
-                name: item.name,
+                name: template.name,
                 value: itemValues[index],
-                unit: item.unit,
+                unit: template.unit,
                 status: itemStatuses[index]
             )
         }
         
         if let dataSet = dataSetToEdit {
             // --- 編集モード ---
-            // 既存のデータセットのプロパティを更新
             dataSet.date = recordDate
             dataSet.memo = memo
             // 関連するRigItemを一度クリアして、新しいもので置き換える
@@ -118,13 +129,11 @@ struct AddRigDataView: View {
             dataSet.elements = finalItems
         } else {
             // --- 新規モード ---
-            // 新しいデータセットを作成
             let newDataSet = RigDataSet(
                 date: recordDate,
                 memo: memo,
                 elements: finalItems
             )
-            // Boatとのリレーションシップに追加
             boat.dataSets.append(newDataSet)
         }
     }
