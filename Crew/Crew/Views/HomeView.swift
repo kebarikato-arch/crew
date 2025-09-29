@@ -4,9 +4,19 @@ import SwiftUI
 import SwiftData
 
 struct HomeView: View {
-    let boats: [Boat]
+    // MARK: 【✅ 修正】boatsを@Queryで直接取得するように変更
+    @Query(sort: \Boat.name, animation: .default) private var boats: [Boat]
     @Binding var selectedBoatID: String?
-    let currentBoat: Boat?
+    
+    // currentBoatのロジックをHomeView内に移動
+    private var currentBoat: Boat? {
+        if let boatID = selectedBoatID,
+           let selectedID = UUID(uuidString: boatID),
+           let boat = boats.first(where: { $0.id == selectedID }) {
+            return boat
+        }
+        return boats.first
+    }
     
     @State private var selectedTab: RigDataType = .current
     @State private var isAddingData = false
@@ -73,7 +83,7 @@ struct HomeView: View {
                                         } label: { RigDataSetRow(dataSet: dataSet) }
                                         .buttonStyle(.plain)
                                     }
-                                }
+                                 }
                             }
                         }.padding(.horizontal).padding(.bottom, 80)
                     }
@@ -137,12 +147,18 @@ struct AddBoatView: View {
     private func addBoat() {
         let newBoat = Boat(name: boatName, dataSets: [], checklist: [], rigItemTemplates: [])
         modelContext.insert(newBoat)
-        try? modelContext.save()
-        selectedBoatID = newBoat.id.uuidString
+        // MARK: 【✅ 修正】エラーハンドリングを追加
+        do {
+            try modelContext.save()
+            selectedBoatID = newBoat.id.uuidString
+        } catch {
+            print("ボートの保存に失敗しました: \(error)")
+        }
     }
 }
 
 #Preview {
+    // ContentViewをプレビュー用に修正
     ContentView()
         .modelContainer(for: Boat.self, inMemory: true)
 }
