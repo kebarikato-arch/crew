@@ -1,97 +1,73 @@
-/// AddRigDataView.swift の全文
-
 import SwiftUI
 import SwiftData
 
 struct AddRigDataView: View {
-    @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     
-    @Bindable var boat: Boat
-    let dataSetToEdit: RigDataSet?
+    var currentBoat: Boat
+    var rigDataSet: RigDataSet? // 編集対象のデータセット
     
-    @State private var recordDate: Date
+    @State private var date: Date
     @State private var memo: String
+    @State private var rigItems: [RigItem] = []
     
-    // MARK: 【修正】編集対象のアイテムを RigItemTemplate から生成するように変更
-    private var templates: [RigItemTemplate] {
-        boat.rigItemTemplates.sorted(by: { $0.name < $1.name })
-    }
+    // カテゴリとブッシュの選択肢
+    private let categories = ["クラッチ", "ブッシュ", "ストレッチャー", "オール", "その他"]
+    private let bushOptions = ["1・7", "2・6", "5・3", "4・4"]
     
-    // Formの各RigItemの値をバインドするための中間表現
-    @State private var itemValues: [String]
-    @State private var itemStatuses: [RigItem.Status]
-    
-    init(boat: Boat, dataSetToEdit: RigDataSet? = nil) {
-        self._boat = Bindable(boat)
-        self.dataSetToEdit = dataSetToEdit
+    init(currentBoat: Boat, rigDataSet: RigDataSet? = nil) {
+        self.currentBoat = currentBoat
+        self.rigDataSet = rigDataSet
         
-        if let existingSet = dataSetToEdit {
-            // --- 編集モード ---
-            self._recordDate = State(initialValue: existingSet.date)
-            self._memo = State(initialValue: existingSet.memo)
-            
-            // テンプレートに基づいて編集中の値を初期化
-            let sortedTemplates = boat.rigItemTemplates.sorted(by: { $0.name < $1.name })
-            var values: [String] = []
-            var statuses: [RigItem.Status] = []
-            
-            for template in sortedTemplates {
-                if let existingItem = existingSet.elements.first(where: { $0.name == template.name }) {
-                    values.append(existingItem.value)
-                    statuses.append(existingItem.status)
-                } else {
-                    // 既存データにテンプレート項目がなければデフォルト値
-                    values.append("0")
-                    statuses.append(.normal)
-                }
-            }
-            self._itemValues = State(initialValue: values)
-            self._itemStatuses = State(initialValue: statuses)
-            
-        } else {
-            // --- 新規モード ---
-            self._recordDate = State(initialValue: Date())
-            self._memo = State(initialValue: "")
-            
-            // MARK: 【修正】Boatに保存されているテンプレートから初期値を生成
-            let count = boat.rigItemTemplates.count
-            self._itemValues = State(initialValue: Array(repeating: "0", count: count))
-            self._itemStatuses = State(initialValue: Array(repeating: .normal, count: count))
-        }
+        _date = State(initialValue: rigDataSet?.date ?? Date())
+        _memo = State(initialValue: rigDataSet?.memo ?? "")
     }
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("ログ情報")) {
-                    DatePicker("記録日", selection: $recordDate)
-                    TextField("メモ（例：強風用セッティング）", text: $memo)
+                Section {
+                    DatePicker("日時", selection: $date)
+                    TextField("メモ", text: $memo)
                 }
                 
-                Section(header: Text("リグ設定値")) {
-                    // MARK: 【修正】テンプレートの配列を元にループ処理
-                    ForEach(templates.indices, id: \.self) { index in
-                        VStack(alignment: .leading) {
-                            Text(templates[index].name)
-                                .font(.headline)
-                            HStack {
-                                TextField("値", text: $itemValues[index])
-                                    .keyboardType(.decimalPad)
-                                Text(templates[index].unit)
-                                Spacer()
-                                Picker("状態", selection: $itemStatuses[index]) {
-                                    ForEach(RigItem.Status.allCases, id: \.self) { status in
-                                        Text(status.rawValue).tag(status)
+                // カテゴリごとに項目をグループ化して表示
+                ForEach(categories, id: \.self) { category in
+                    let itemsForCategory = rigItems.filter { $0.template.category == category }
+                    if !itemsForCategory.isEmpty {
+                        Section(header: Text(category).font(.headline)) {
+                            ForEach(itemsForCategory) { rigItem in
+                                if let index = rigItems.firstIndex(where: { $0.id == rigItem.id }) {
+                                    // ブッシュ項目の場合、ピッカーを表示
+                                    if rigItem.template.name == "ブッシュ" {
+                                        Picker(selection: Binding(
+                                            get: { rigItems[index].stringValue ?? "" },
+                                            set: { rigItems[index].stringValue = $0 }
+                                        ), label: Text(rigItem.template.name)) {
+                                            ForEach(bushOptions, id: \.self) {
+                                                Text($0)
+                                            }
+                                        }
+                                    } else {
+                                        // それ以外の項目はこれまで通り
+                                        HStack {
+                                            Text(rigItem.template.name)
+                                            Spacer()
+                                            TextField("値", value: $rigItems[index].value, format: .number)
+                                                .keyboardType(.decimalPad)
+                                                .multilineTextAlignment(.trailing)
+                                            Text(rigItem.template.unit)
+                                        }
                                     }
                                 }
-                                .pickerStyle(.menu)
                             }
                         }
                     }
                 }
             }
-            .navigationTitle(dataSetToEdit == nil ? "新しいリグデータの追加" : "ログを編集")
+            .navigationTitle(rigDataSet == nil ? "新規データ" : "データを編集")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("キャンセル") {
@@ -100,41 +76,45 @@ struct AddRigDataView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("保存") {
-                        saveData()
+                        saveRigData()
                         dismiss()
                     }
+                }
+            }
+            .onAppear(perform: setupRigItems)
+        }
+    }
+    
+    private func setupRigItems() {
+        if let templates = currentBoat.rigItemTemplates {
+            self.rigItems = templates.map { template in
+                // 編集モードの場合、既存の値を探す
+                if let rigDataSet = rigDataSet, let item = rigDataSet.rigItems.first(where: { $0.template.id == template.id }) {
+                    return RigItem(name: item.name, value: item.value, stringValue: item.stringValue, unit: item.unit, status: item.status, template: template)
+                } else {
+                    // 新規作成の場合、デフォルト値を設定
+                    return RigItem(name: template.name, value: 0.0, stringValue: template.name == "ブッシュ" ? bushOptions.first : nil, unit: template.unit, status: .normal, template: template)
                 }
             }
         }
     }
     
-    private func saveData() {
-        // MARK: 【修正】永続化用のRigItem配列をテンプレートを元に生成
-        let finalItems = templates.indices.map { index -> RigItem in
-            let template = templates[index]
-            return RigItem(
-                name: template.name,
-                value: itemValues[index],
-                unit: template.unit,
-                status: itemStatuses[index]
-            )
+    private func saveRigData() {
+        let dataSetToSave: RigDataSet
+        if let rigDataSet = rigDataSet {
+            // 既存のデータを更新
+            dataSetToSave = rigDataSet
+            dataSetToSave.date = date
+            dataSetToSave.memo = memo
+            dataSetToSave.rigItems.removeAll()
+        } else {
+            // 新しいデータを作成
+            dataSetToSave = RigDataSet(date: date, memo: memo)
+            currentBoat.rigDataSets.append(dataSetToSave)
         }
         
-        if let dataSet = dataSetToEdit {
-            // --- 編集モード ---
-            dataSet.date = recordDate
-            dataSet.memo = memo
-            // 関連するRigItemを一度クリアして、新しいもので置き換える
-            dataSet.elements.forEach { modelContext.delete($0) }
-            dataSet.elements = finalItems
-        } else {
-            // --- 新規モード ---
-            let newDataSet = RigDataSet(
-                date: recordDate,
-                memo: memo,
-                elements: finalItems
-            )
-            boat.dataSets.append(newDataSet)
+        for item in rigItems {
+            dataSetToSave.rigItems.append(item)
         }
     }
 }

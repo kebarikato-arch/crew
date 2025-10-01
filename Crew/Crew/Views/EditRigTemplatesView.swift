@@ -1,98 +1,54 @@
-// EditRigTemplatesView.swift の全文
-
 import SwiftUI
 import SwiftData
 
 struct EditRigTemplatesView: View {
-    @Bindable var boat: Boat
-    @Environment(\.modelContext) private var modelContext
-    
-    @State private var showingAddItemSheet = false
+    @Bindable var currentBoat: Boat
+    @State private var newTemplateName = ""
+    @State private var newTemplateUnit = ""
+    @State private var selectedCategory = "クラッチ"
+    private let categories = ["クラッチ", "ブッシュ", "ストレッチャー", "オール", "その他"]
     
     var body: some View {
         Form {
-            Section(header: Text("リグアイテム テンプレート")) {
-                // 保存されているテンプレートを一覧表示
-                ForEach(boat.rigItemTemplates) { template in
+            Section(header: Text("リグ項目テンプレート")) {
+                ForEach(currentBoat.rigItemTemplates) { template in
                     HStack {
                         Text(template.name)
                         Spacer()
                         Text(template.unit)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.gray)
                     }
                 }
                 .onDelete(perform: deleteTemplate)
+            }
+            
+            Section(header: Text("新しい項目を追加")) {
+                TextField("項目名", text: $newTemplateName)
+                TextField("単位", text: $newTemplateUnit)
                 
-                // 新しいテンプレートを追加するボタン
-                Button("新しいテンプレートを追加") {
-                    showingAddItemSheet = true
+                Picker("カテゴリ", selection: $selectedCategory) {
+                    ForEach(categories, id: \.self) {
+                        Text($0)
+                    }
                 }
+                
+                Button(action: addTemplate) {
+                    Text("追加")
+                }
+                .disabled(newTemplateName.isEmpty)
             }
         }
         .navigationTitle("テンプレートを編集")
-        .toolbar {
-            // 編集ボタン（リストの移動や削除に使う標準UI）
-            EditButton()
-        }
-        .sheet(isPresented: $showingAddItemSheet) {
-            AddRigTemplateView(boat: boat)
-        }
-    }
-    
-    // テンプレートを削除する関数
-    private func deleteTemplate(at offsets: IndexSet) {
-        for index in offsets {
-            let templateToDelete = boat.rigItemTemplates[index]
-            modelContext.delete(templateToDelete)
-        }
-    }
-}
-
-
-// MARK: - 新しいテンプレートを追加するためのView
-struct AddRigTemplateView: View {
-    @Environment(\.dismiss) var dismiss
-    @Bindable var boat: Boat
-    
-    @State private var name: String = ""
-    @State private var unit: String = ""
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("新しいテンプレート")) {
-                    TextField("アイテム名 (例: フォアステイ)", text: $name)
-                    TextField("単位 (例: %)", text: $unit)
-                }
-            }
-            .navigationTitle("テンプレートを追加")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
-                        addTemplate()
-                        dismiss()
-                    }
-                    .disabled(name.isEmpty || unit.isEmpty)
-                }
-            }
-        }
     }
     
     private func addTemplate() {
-        let newTemplate = RigItemTemplate(name: name, unit: unit)
-        boat.rigItemTemplates.append(newTemplate)
+        let newTemplate = RigItemTemplate(name: newTemplateName, unit: newTemplateUnit, category: selectedCategory)
+        currentBoat.rigItemTemplates.append(newTemplate)
+        newTemplateName = ""
+        newTemplateUnit = ""
     }
-}
-
-
-#Preview {
-    // NavigationStackを追加してプレビュー
-    NavigationView {
-        EditRigTemplatesView(boat: Boat.dummy)
-            .modelContainer(for: Boat.self, inMemory: true)
+    
+    private func deleteTemplate(at offsets: IndexSet) {
+        currentBoat.rigItemTemplates.remove(atOffsets: offsets)
     }
 }
