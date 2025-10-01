@@ -9,7 +9,7 @@ struct CrewApp: App {
         WindowGroup {
             ContentView()
         }
-        // MARK: 【✅ 修正】トップレベルのモデルのみを指定し、SwiftDataにリレーションの解決を任せる
+        // MARK: 【修正】トップレベルのモデルのみを指定し、SwiftDataにリレーションの解決を任せる
         .modelContainer(for: Boat.self)
     }
 }

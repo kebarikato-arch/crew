@@ -22,7 +22,7 @@ struct SettingView: View {
                                 .disabled(true)
                         }
                         NavigationLink("リグアイテムのテンプレートを編集") {
-                            // EditRigTemplatesView(boat: boat)
+                            EditRigTemplatesView(boat: boat)
                         }
                     }
                 }

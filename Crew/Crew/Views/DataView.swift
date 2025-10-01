@@ -40,7 +40,7 @@ struct DataView: View {
             .unit ?? ""
     }
     
-    // MARK: 【✅ 新規追加】統計データを計算するプロパティ
+    // MARK: 【新規追加】統計データを計算するプロパティ
     private var statistics: (avg: Double, max: Double, min: Double)? {
         let values = selectedItemHistory.map { $0.value }
         guard !values.isEmpty else { return nil }
@@ -102,7 +102,7 @@ struct DataView: View {
                         }
                         .padding(.horizontal)
                         
-                        // MARK: 【✅ 新規追加】統計情報表示エリア
+                        // MARK: 【新規追加】統計情報表示エリア
                         if let stats = statistics {
                             VStack(alignment: .leading) {
                                 Text("統計情報")
@@ -133,7 +133,7 @@ struct DataView: View {
     }
 }
 
-// MARK: 【✅ 新規追加】統計情報カードビュー
+// MARK: 【新規追加】統計情報カードビュー
 struct StatisticCard: View {
     let label: String
     let value: Double

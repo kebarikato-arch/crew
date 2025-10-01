@@ -68,7 +68,7 @@ struct RigHistoryDetailView: View {
                 
                 Divider()
                 
-                // MARK: 【✅ 修正】アクションボタンエリア
+                // MARK: 【修正】アクションボタンエリア
                 VStack(spacing: 10) {
                     // MARK: この設定を再現ボタン
                     Button {
@@ -119,7 +119,7 @@ struct RigHistoryDetailView: View {
         dismiss()
     }
     
-    // MARK: 【✅ 新規追加】設定を再現する関数
+    // MARK: 【新規追加】設定を再現する関数
     private func reproduceDataSet() {
         // 過去のRigItemを新しいインスタンスとしてコピー
         let copiedItems = dataSet.elements.map { item in

@@ -139,7 +139,7 @@ struct AddBoatView: View {
     }
     
     private func addBoat() {
-        // MARK: 【✅ 修正】新しいボートにデフォルトのテンプレートを追加する
+        // MARK: 【修正】新しいボートにデフォルトのテンプレートを追加する
         let defaultTemplates = [
             RigItemTemplate(name: "フォアステイ", unit: "%"),
             RigItemTemplate(name: "D1シュラウド", unit: "%"),

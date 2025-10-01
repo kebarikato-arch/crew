@@ -4,13 +4,13 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    // MARK: 【✅ 修正】@QueryをHomeViewに移動したため、ここでは削除
+    // MARK: 【修正】@QueryをHomeViewに移動したため、ここでは削除
     // @Query(sort: \Boat.name, animation: .default) private var boats: [Boat]
     
     // ユーザーが最後に選択したボートのIDを記憶します
     @AppStorage("selectedBoatID") private var selectedBoatID: String?
     
-    // MARK: 【✅ 修正】データベースからboatsを取得するロジックを削除
+    // MARK: 【修正】データベースからboatsを取得するロジックを削除
     var body: some View {
         // メインのタブ画面を常に表示する安定した構造
         MainTabView(
@@ -21,7 +21,7 @@ struct ContentView: View {
 
 // MARK: - メインのタブ画面
 struct MainTabView: View {
-    // MARK: 【✅ 修正】HomeViewで@Queryを使うため、ここからboatsを削除
+    // MARK: 【修正】HomeViewで@Queryを使うため、ここからboatsを削除
     // let boats: [Boat]
     @Query(sort: \Boat.name) private var boats: [Boat] // MainTabViewでboatsとcurrentBoatを解決
     @Binding var selectedBoatID: String?
@@ -39,7 +39,7 @@ struct MainTabView: View {
     
     var body: some View {
         TabView(selection: $selection) {
-            // MARK: 【✅ 修正】HomeViewにboatsとcurrentBoatを渡すのをやめる
+            // MARK: 【修正】HomeViewにboatsとcurrentBoatを渡すのをやめる
             HomeView(
                 selectedBoatID: $selectedBoatID
             )
@@ -47,7 +47,7 @@ struct MainTabView: View {
             .tag(0)
             
             Group {
-                // MARK: 【✅ 修正】currentBoatをMainTabView内で解決
+                // MARK: 【修正】currentBoatをMainTabView内で解決
                 if let boat = currentBoat {
                     CheckListView(boat: boat)
                 } else {

@@ -13,7 +13,7 @@ struct AddRigDataView: View {
     @State private var recordDate: Date
     @State private var memo: String
     
-    // MARK: 【✅ 修正】編集対象のアイテムを RigItemTemplate から生成するように変更
+    // MARK: 【修正】編集対象のアイテムを RigItemTemplate から生成するように変更
     private var templates: [RigItemTemplate] {
         boat.rigItemTemplates.sorted(by: { $0.name < $1.name })
     }
@@ -54,7 +54,7 @@ struct AddRigDataView: View {
             self._recordDate = State(initialValue: Date())
             self._memo = State(initialValue: "")
             
-            // MARK: 【✅ 修正】Boatに保存されているテンプレートから初期値を生成
+            // MARK: 【修正】Boatに保存されているテンプレートから初期値を生成
             let count = boat.rigItemTemplates.count
             self._itemValues = State(initialValue: Array(repeating: "0", count: count))
             self._itemStatuses = State(initialValue: Array(repeating: .normal, count: count))
@@ -70,7 +70,7 @@ struct AddRigDataView: View {
                 }
                 
                 Section(header: Text("リグ設定値")) {
-                    // MARK: 【✅ 修正】テンプレートの配列を元にループ処理
+                    // MARK: 【修正】テンプレートの配列を元にループ処理
                     ForEach(templates.indices, id: \.self) { index in
                         VStack(alignment: .leading) {
                             Text(templates[index].name)
@@ -109,7 +109,7 @@ struct AddRigDataView: View {
     }
     
     private func saveData() {
-        // MARK: 【✅ 修正】永続化用のRigItem配列をテンプレートを元に生成
+        // MARK: 【修正】永続化用のRigItem配列をテンプレートを元に生成
         let finalItems = templates.indices.map { index -> RigItem in
             let template = templates[index]
             return RigItem(

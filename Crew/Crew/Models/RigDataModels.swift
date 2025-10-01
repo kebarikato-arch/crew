@@ -4,7 +4,7 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-// MARK: - 【✅ 新規追加】リグアイテムのテンプレート用モデル
+// MARK: - 【新規追加】リグアイテムのテンプレート用モデル
 @Model
 final class RigItemTemplate: Identifiable {
     @Attribute(.unique) var id: UUID
@@ -116,11 +116,11 @@ final class Boat: Identifiable {
     @Relationship(deleteRule: .cascade)
     var checklist: [CheckListItem]
     
-    // MARK: 【✅ 修正】リグアイテムのテンプレートを永続化するプロパティに変更
+    // MARK: 【修正】リグアイテムのテンプレートを永続化するプロパティに変更
     @Relationship(deleteRule: .cascade, inverse: \RigItemTemplate.boat)
     var rigItemTemplates: [RigItemTemplate]
     
-    // MARK: 【✅ 修正】イニシャライザを更新
+    // MARK: 【修正】イニシャライザを更新
     init(id: UUID = UUID(), name: String, dataSets: [RigDataSet], checklist: [CheckListItem], rigItemTemplates: [RigItemTemplate] = []) {
         self.id = id
         self.name = name
@@ -133,10 +133,10 @@ final class Boat: Identifiable {
         return dataSets.sorted().first
     }
     
-    // MARK: 【✅ 削除】ハードコードされたテンプレートを削除
+    // MARK: 【削除】ハードコードされたテンプレートを削除
     // var rigItemTemplate: [RigItem] { ... }
     
-    // MARK: 【✅ 修正】ダミーデータ生成ロジックを更新
+    // MARK: 【修正】ダミーデータ生成ロジックを更新
     static var dummy: Boat {
         let items1: [RigItem] = [
             RigItem(name: "フォアステイ", value: "30", unit: "%", status: .normal),
