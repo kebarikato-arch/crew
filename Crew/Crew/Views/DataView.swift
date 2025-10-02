@@ -1,10 +1,3 @@
-//
-//  DataView.swift
-//  Crew
-//
-//  Created by Gemini
-//
-
 import SwiftUI
 import SwiftData
 import Charts
@@ -12,35 +5,39 @@ import Charts
 struct DataView: View {
     let boat: Boat
     
-    @State private var selectedRigItemName: String = "フォアステイ"
+    @State private var selectedRigItemName: String?
     
     private var selectedItemHistory: [(date: Date, value: Double)] {
-        guard !boat.dataSets.isEmpty else { return [] }
+        // MARK: 【修正】 rigDataSets を使用
+        guard let name = selectedRigItemName, !boat.rigDataSets.isEmpty else { return [] }
         
-        return boat.dataSets
+        return boat.rigDataSets
             .compactMap { dataSet -> (Date, Double)? in
-                guard let historicItem = dataSet.elements.first(where: { $0.name == selectedRigItemName }),
-                      let value = Double(historicItem.value) else {
+                // MARK: 【修正】 rigItems を使用し、Double(historicItem.value) を historicItem.value に変更
+                guard let historicItem = dataSet.rigItems.first(where: { $0.name == name }) else {
                     return nil
                 }
-                return (dataSet.date, value)
+                // Double型の value を直接使用
+                return (dataSet.date, historicItem.value)
             }
             .sorted(by: { $0.date < $1.date })
     }
     
     private var availableRigItemNames: [String] {
-        let allItemNames = Set(boat.dataSets.flatMap { $0.elements.map { $0.name } })
+        // MARK: 【修正】 rigDataSets と rigItems を使用
+        let allItemNames = Set(boat.rigDataSets.flatMap { $0.rigItems.map { $0.name } })
         return Array(allItemNames).sorted()
     }
     
     private var selectedItemUnit: String {
-        boat.dataSets.lazy
-            .flatMap { $0.elements }
-            .first { $0.name == selectedRigItemName }?
+        guard let name = selectedRigItemName else { return "" }
+        return boat.rigDataSets.lazy
+            // MARK: 【修正】 rigDataSets と rigItems を使用
+            .flatMap { $0.rigItems }
+            .first { $0.name == name }?
             .unit ?? ""
     }
     
-    // MARK: 【新規追加】統計データを計算するプロパティ
     private var statistics: (avg: Double, max: Double, min: Double)? {
         let values = selectedItemHistory.map { $0.value }
         guard !values.isEmpty else { return nil }
@@ -57,83 +54,87 @@ struct DataView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     
-                    if !boat.dataSets.isEmpty && !availableRigItemNames.isEmpty {
+                    // MARK: 【修正】 rigDataSets を使用
+                    if !boat.rigDataSets.isEmpty && !availableRigItemNames.isEmpty {
                         
                         Picker("リグアイテムを選択", selection: $selectedRigItemName) {
                             ForEach(availableRigItemNames, id: \.self) { name in
-                                Text(name).tag(name)
+                                Text(name).tag(name as String?)
                             }
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal)
                         
-                        VStack(alignment: .leading) {
-                            Text("\(selectedRigItemName) の履歴")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .padding([.leading, .top])
-                            
-                            if selectedItemHistory.count > 1 {
-                                Chart(selectedItemHistory, id: \.date) { data in
-                                    LineMark(
-                                        x: .value("日付", data.date, unit: .day),
-                                        y: .value("値 (\(selectedItemUnit))", data.value)
-                                    )
-                                    .foregroundStyle(.blue)
-                                    PointMark(
-                                        x: .value("日付", data.date, unit: .day),
-                                        y: .value("値 (\(selectedItemUnit))", data.value)
-                                    )
-                                    .foregroundStyle(.blue)
-                                }
-                                .chartYAxisLabel("値 (\(selectedItemUnit))")
-                                .frame(height: 300)
-                                .padding()
-                                .background(Color(.secondarySystemBackground))
-                                .cornerRadius(15)
-                                .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
-                                
-                            } else {
-                                Text("グラフを表示するには、2つ以上のデータログが必要です。")
-                                    .foregroundColor(.gray)
-                                    .padding()
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
-                        .padding(.horizontal)
-                        
-                        // MARK: 【新規追加】統計情報表示エリア
-                        if let stats = statistics {
+                        if let name = selectedRigItemName {
                             VStack(alignment: .leading) {
-                                Text("統計情報")
+                                Text("\(name) の履歴")
                                     .font(.title2)
                                     .fontWeight(.semibold)
+                                    .padding([.leading, .top])
                                 
-                                HStack(spacing: 15) {
-                                    StatisticCard(label: "平均", value: stats.avg, unit: selectedItemUnit)
-                                    StatisticCard(label: "最大", value: stats.max, unit: selectedItemUnit, color: .green)
-                                    StatisticCard(label: "最小", value: stats.min, unit: selectedItemUnit, color: .orange)
+                                if selectedItemHistory.count > 1 {
+                                    Chart(selectedItemHistory, id: \.date) { data in
+                                        LineMark(
+                                            x: .value("日付", data.date, unit: .day),
+                                            y: .value("値 (\(selectedItemUnit))", data.value)
+                                        )
+                                        .foregroundStyle(.blue)
+                                        PointMark(
+                                            x: .value("日付", data.date, unit: .day),
+                                            y: .value("値 (\(selectedItemUnit))", data.value)
+                                        )
+                                        .foregroundStyle(.blue)
+                                    }
+                                    .chartYAxisLabel("値 (\(selectedItemUnit))")
+                                    .frame(height: 300)
+                                    .padding()
+                                    .background(Color(.secondarySystemBackground))
+                                    .cornerRadius(15)
+                                    .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
+                                    
+                                } else {
+                                    Text("グラフを表示するには、2つ以上のデータログが必要です。")
+                                        .foregroundColor(.gray)
+                                        .padding()
+                                        .frame(maxWidth: .infinity)
                                 }
                             }
                             .padding(.horizontal)
+                            
+                            if let stats = statistics {
+                                VStack(alignment: .leading) {
+                                    Text("統計情報")
+                                        .font(.title2)
+                                        .fontWeight(.semibold)
+                                    
+                                    HStack(spacing: 15) {
+                                        StatisticCard(label: "平均", value: stats.avg, unit: selectedItemUnit)
+                                        StatisticCard(label: "最大", value: stats.max, unit: selectedItemUnit, color: .green)
+                                        StatisticCard(label: "最小", value: stats.min, unit: selectedItemUnit, color: .orange)
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
                         }
                         
                     } else {
-                        Text("分析できるデータがありません。\nまずはリグのログを追加してください。")
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.gray)
-                            .padding(.top, 50)
-                            .frame(maxWidth: .infinity)
+                        ContentUnavailableView("データがありません", systemImage: "chart.bar.xaxis.ascending", description: Text("分析できるデータがありません。\nまずはリグデータを記録してください。"))
+                        .padding(.top, 50)
                     }
                 }
                 .padding(.top)
+                .onAppear {
+                    if selectedRigItemName == nil {
+                        selectedRigItemName = availableRigItemNames.first
+                    }
+                }
             }
             .navigationTitle("データ分析")
         }
     }
 }
 
-// MARK: 【新規追加】統計情報カードビュー
+// 統計情報カードビュー
 struct StatisticCard: View {
     let label: String
     let value: Double
@@ -158,19 +159,4 @@ struct StatisticCard: View {
         .background(Color(.secondarySystemBackground))
         .cornerRadius(10)
     }
-}
-
-
-#Preview {
-    let exampleBoat = Boat.dummy
-    let items2: [RigItem] = [
-        RigItem(name: "フォアステイ", value: "32", unit: "%", status: .normal),
-        RigItem(name: "D1シュラウド", value: "30", unit: "%", status: .normal),
-        RigItem(name: "V2シュラウド", value: "28", unit: "%", status: .maintenance)
-    ]
-    let dataSet2 = RigDataSet(date: Date(), memo: "軽風用", elements: items2)
-    exampleBoat.dataSets.append(dataSet2)
-    
-    return DataView(boat: exampleBoat)
-        .modelContainer(for: Boat.self, inMemory: true)
 }

@@ -1,43 +1,64 @@
-//
-//  RigItemDetailView.swift
-//  Crew
-//
-//  Created by Gemini
-//
-
 import SwiftUI
-import Charts // チャート表示に Charts フレームワークを使用
+import Charts
 
 struct RigItemDetailView: View {
-    let item: RigItem // 現在の詳細アイテム
-    let allDataSets: [RigDataSet] // 履歴を抽出するために全てのデータセットを渡す
+    let item: RigItem
+    let allDataSets: [RigDataSet]
     
-    // このアイテムの過去の値を抽出する
     var itemHistory: [(date: Date, value: Double)] {
         return allDataSets
             .compactMap { dataSet -> (Date, Double)? in
-                // RigDataSetから同じ名前のRigItemを探す
-                guard let historicItem = dataSet.elements.first(where: { $0.name == item.name }),
-                      let value = Double(historicItem.value) else {
+                guard let historicItem = dataSet.rigItems.first(where: { $0.name == item.name }) else {
                     return nil
                 }
-                return (dataSet.date, value)
+                // 'value' (Double) を直接使用
+                return (dataSet.date, historicItem.value)
             }
-            .sorted(by: { $0.date < $1.date }) // 日付が古い順にソート
+            .sorted(by: { $0.date < $1.date })
     }
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // MARK: 現在の値のサマリー
-                RigSettingCardView(item: item)
-                    .padding(.horizontal)
+                // MARK: 【修正】RigSettingCardViewの代わりに詳細を直接表示
+                VStack(alignment: .leading) {
+                    Text("現在の値")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    HStack {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(item.name)
+                                .font(.headline)
+                            HStack(alignment: .lastTextBaseline) {
+                                Text(String(format: "%.1f", item.value))
+                                    .font(.title)
+                                    .fontWeight(.bold)
+                                Text(item.unit)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        Spacer()
+                        VStack {
+                            Image(systemName: "circle.fill")
+                                .foregroundColor(item.statusColor)
+                            Text(item.status.rawValue)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal)
                 
                 Divider()
                 
                 // MARK: 履歴グラフ
                 VStack(alignment: .leading) {
-                    Text("\(item.name) テンション履歴")
+                    Text("\(item.name) 履歴")
                         .font(.title2)
                         .fontWeight(.semibold)
                         .padding(.leading)
@@ -62,27 +83,13 @@ struct RigItemDetailView: View {
                         .cornerRadius(15)
                         .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
                     } else {
-                        Text("履歴データが不足しています。新しいデータを追加してください。")
+                        Text("履歴データが不足しています。")
                             .foregroundColor(.gray)
                             .padding()
+                            .frame(maxWidth: .infinity)
                     }
                 }
                 .padding(.horizontal)
-                
-                // MARK: メンテナンス情報 (今後の拡張用)
-                VStack(alignment: .leading) {
-                    Text("アクション")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    Button("このアイテムのメンテナンスログを追加 (未実装)") {}
-                    .buttonStyle(.borderedProminent)
-                    
-                    Button("設定を編集 (未実装)") {}
-                    .buttonStyle(.borderless)
-                }
-                .padding(.horizontal)
-                
             }
             .padding(.top)
         }

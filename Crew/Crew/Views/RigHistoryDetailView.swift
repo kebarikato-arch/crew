@@ -52,7 +52,7 @@ struct RigHistoryDetailView: View {
                     VStack(spacing: 1) {
                         ForEach(dataSet.elements.sorted(by: { $0.name < $1.name })) { item in
                             NavigationLink {
-                                RigItemDetailView(item: item, allDataSets: boat.dataSets)
+                                RigItemDetailView(item: item, allDataSets: boat.rigDataSets)
                             } label: {
                                 RigItemSettingRow(item: item)
                             }
@@ -134,7 +134,7 @@ struct RigHistoryDetailView: View {
         )
         
         // Boatのデータセットに追加
-        boat.dataSets.append(newDataSet)
+        boat.rigDataSets.append(newDataSet)
         
         // 画面を閉じる
         dismiss()

@@ -4,28 +4,18 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    // MARK: 【修正】@QueryをHomeViewに移動したため、ここでは削除
-    // @Query(sort: \Boat.name, animation: .default) private var boats: [Boat]
-    
     // ユーザーが最後に選択したボートのIDを記憶します
     @AppStorage("selectedBoatID") private var selectedBoatID: String?
     
-    // MARK: 【修正】データベースからboatsを取得するロジックを削除
     var body: some View {
-        // メインのタブ画面を常に表示する安定した構造
-        MainTabView(
-            selectedBoatID: $selectedBoatID
-        )
+        MainTabView(selectedBoatID: $selectedBoatID)
     }
 }
 
 // MARK: - メインのタブ画面
 struct MainTabView: View {
-    // MARK: 【修正】HomeViewで@Queryを使うため、ここからboatsを削除
-    // let boats: [Boat]
-    @Query(sort: \Boat.name) private var boats: [Boat] // MainTabViewでboatsとcurrentBoatを解決
+    @Query(sort: \Boat.name) private var boats: [Boat]
     @Binding var selectedBoatID: String?
-    @State private var selection: Int = 0
     
     private var currentBoat: Boat? {
         if let boatID = selectedBoatID,
@@ -33,21 +23,16 @@ struct MainTabView: View {
            let boat = boats.first(where: { $0.id == selectedID }) {
             return boat
         }
-        // 該当するボートがなければ、リストの最初のボートを返す
         return boats.first
     }
     
     var body: some View {
-        TabView(selection: $selection) {
-            // MARK: 【修正】HomeViewにboatsとcurrentBoatを渡すのをやめる
-            HomeView(
-                selectedBoatID: $selectedBoatID
-            )
-            .tabItem { Label("My Rig", systemImage: "water.waves") }
-            .tag(0)
+        TabView {
+            // MARK: 【修正】HomeViewに選択中のボートIDをBindingで渡す
+            HomeView(selectedBoatID: $selectedBoatID)
+                .tabItem { Label("My Rig", systemImage: "water.waves") }
             
             Group {
-                // MARK: 【修正】currentBoatをMainTabView内で解決
                 if let boat = currentBoat {
                     CheckListView(boat: boat)
                 } else {
@@ -55,7 +40,6 @@ struct MainTabView: View {
                 }
             }
             .tabItem { Label("Checklist", systemImage: "checklist") }
-            .tag(1)
             
             Group {
                 if let boat = currentBoat {
@@ -65,18 +49,21 @@ struct MainTabView: View {
                 }
             }
             .tabItem { Label("Data", systemImage: "chart.line.uptrend.xyaxis") }
-            .tag(2)
             
             SettingView(
                 selectedBoatID: $selectedBoatID,
                 currentBoat: currentBoat
             )
             .tabItem { Label("Setting", systemImage: "gear") }
-            .tag(3)
         }
         .onAppear {
-            // アプリ起動時にボートが選択されていなければ、最初のボートを選択状態にします
-            if selectedBoatID == nil && !boats.isEmpty {
+            if selectedBoatID == nil, let firstBoat = boats.first {
+                selectedBoatID = firstBoat.id.uuidString
+            }
+        }
+        .onChange(of: boats) {
+             // ボートが削除されるなどで選択中のIDが無効になった場合、先頭のボートを選択する
+            if let boatID = selectedBoatID, boats.first(where: { $0.id.uuidString == boatID }) == nil {
                 selectedBoatID = boats.first?.id.uuidString
             }
         }
@@ -96,9 +83,4 @@ struct PlaceholderView: View {
                 .multilineTextAlignment(.center).padding(.horizontal)
         }
     }
-}
-
-#Preview {
-    ContentView()
-        .modelContainer(for: Boat.self, inMemory: true)
 }

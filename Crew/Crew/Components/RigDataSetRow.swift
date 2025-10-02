@@ -1,10 +1,3 @@
-//
-//  RigDataSetRow.swift
-//  Crew
-//
-//  Created by Gemini
-//
-
 import SwiftUI
 
 struct RigDataSetRow: View {
@@ -18,32 +11,32 @@ struct RigDataSetRow: View {
     }
     
     var body: some View {
-        HStack(alignment: .top) {
+        HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(dataSet.memo.isEmpty ? "リグ設定ログ (\(dateFormatter.string(from: dataSet.date)))" : dataSet.memo)
+                Text(dataSet.memo.isEmpty ? "リグ設定ログ" : dataSet.memo)
                     .font(.headline)
                     .foregroundColor(.primary)
+                    .lineLimit(1)
                 
                 Text("記録日: \(dateFormatter.string(from: dataSet.date))")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
-                // 危険なアイテムの数を表示
-                if dataSet.elements.contains(where: { $0.status == .expired }) {
-                    Text("要交換/調整アイテムあり")
-                        .font(.caption)
-                        .foregroundColor(.red)
+                // MARK: 【修正】'elements' -> 'rigItems'、'.expired' -> '.critical'
+                if dataSet.rigItems.contains(where: { $0.status == .critical }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                        Text("要交換/調整アイテムあり")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .fontWeight(.bold)
                 }
             }
             Spacer()
-            
             Image(systemName: "chevron.right")
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
         }
         .padding(.vertical, 8)
-        .padding(.horizontal, 5)
-        .background(Color(.systemBackground))
-        .cornerRadius(10)
-        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
     }
 }

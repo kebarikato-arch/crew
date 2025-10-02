@@ -1,5 +1,3 @@
-// SettingView.swift の全文
-
 import SwiftUI
 import SwiftData
 
@@ -22,7 +20,8 @@ struct SettingView: View {
                                 .disabled(true)
                         }
                         NavigationLink("リグアイテムのテンプレートを編集") {
-                            EditRigTemplatesView(boat: boat)
+                            // MARK: 【修正】引数ラベルを boat: から currentBoat: に変更
+                            EditRigTemplatesView(currentBoat: boat)
                         }
                     }
                 }
@@ -50,17 +49,12 @@ struct SettingView: View {
     private func deleteBoat(at offsets: IndexSet) {
         for index in offsets {
             let boatToDelete = allBoats[index]
+            // 削除するボートが現在選択中のボートだった場合、選択を解除または他のボートに切り替える
             if boatToDelete.id.uuidString == selectedBoatID {
                 let remainingBoats = allBoats.filter { $0.id != boatToDelete.id }
                 selectedBoatID = remainingBoats.first?.id.uuidString
             }
             modelContext.delete(boatToDelete)
         }
-        try? modelContext.save()
     }
-}
-
-#Preview {
-    ContentView()
-        .modelContainer(for: Boat.self, inMemory: true)
 }
