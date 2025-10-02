@@ -5,22 +5,13 @@ struct RigItemDetailView: View {
     let item: RigItem
     let allDataSets: [RigDataSet]
     
-    var itemHistory: [(date: Date, value: Double)] {
-        return allDataSets
-            .compactMap { dataSet -> (Date, Double)? in
-                guard let historicItem = dataSet.rigItems.first(where: { $0.name == item.name }) else {
-                    return nil
-                }
-                // 'value' (Double) を直接使用
-                return (dataSet.date, historicItem.value)
-            }
-            .sorted(by: { $0.date < $1.date })
-    }
+    // MARK: 【修正】計算結果を保持するための@State変数を追加
+    @State private var itemHistory: [(date: Date, value: Double)] = []
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // MARK: 【修正】RigSettingCardViewの代わりに詳細を直接表示
+                // MARK: 現在の値のサマリー表示
                 VStack(alignment: .leading) {
                     Text("現在の値")
                         .font(.caption)
@@ -69,12 +60,12 @@ struct RigItemDetailView: View {
                                 x: .value("日付", data.date),
                                 y: .value("値 (\(item.unit))", data.value)
                             )
-                            .foregroundStyle(item.statusColor)
+                            .foregroundStyle(.blue) // statusColorだと複雑になるため一旦固定
                             PointMark(
                                 x: .value("日付", data.date),
                                 y: .value("値 (\(item.unit))", data.value)
                             )
-                            .foregroundStyle(item.statusColor)
+                            .foregroundStyle(.blue)
                         }
                         .chartYAxisLabel("値 (\(item.unit))")
                         .frame(height: 250)
@@ -95,5 +86,19 @@ struct RigItemDetailView: View {
         }
         .navigationTitle(item.name)
         .navigationBarTitleDisplayMode(.inline)
+        // MARK: 【修正】画面が表示された時に一度だけデータを計算する
+        .onAppear(perform: calculateHistory)
+    }
+    
+    // MARK: 【修正】データ計算ロジックを別の関数に分離
+    private func calculateHistory() {
+        self.itemHistory = allDataSets
+            .compactMap { dataSet -> (Date, Double)? in
+                guard let historicItem = dataSet.rigItems.first(where: { $0.name == item.name }) else {
+                    return nil
+                }
+                return (dataSet.date, historicItem.value)
+            }
+            .sorted(by: { $0.date < $1.date })
     }
 }

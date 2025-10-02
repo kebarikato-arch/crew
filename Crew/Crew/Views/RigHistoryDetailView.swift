@@ -1,5 +1,3 @@
-// RigHistoryDetailView.swift の全文
-
 import SwiftUI
 import SwiftData
 
@@ -23,7 +21,6 @@ struct RigHistoryDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 
-                // MARK: ログサマリー
                 VStack(alignment: .leading, spacing: 5) {
                     Text("記録日: \(dateFormatter.string(from: dataSet.date))")
                         .font(.subheadline)
@@ -43,14 +40,16 @@ struct RigHistoryDetailView: View {
                 
                 Divider()
                 
-                // MARK: 設定値リスト
                 VStack(alignment: .leading) {
                     Text("リグ設定値")
                         .font(.title2)
                         .fontWeight(.semibold)
                     
+                    // MARK: 【修正】ForEachの前に並び替えを済ませておく
+                    let sortedItems = dataSet.rigItems.sorted(by: { $0.name < $1.name })
+                    
                     VStack(spacing: 1) {
-                        ForEach(dataSet.elements.sorted(by: { $0.name < $1.name })) { item in
+                        ForEach(sortedItems) { item in
                             NavigationLink {
                                 RigItemDetailView(item: item, allDataSets: boat.rigDataSets)
                             } label: {
@@ -68,39 +67,24 @@ struct RigHistoryDetailView: View {
                 
                 Divider()
                 
-                // MARK: 【修正】アクションボタンエリア
                 VStack(spacing: 10) {
-                    // MARK: この設定を再現ボタン
-                    Button {
-                        reproduceDataSet()
-                    } label: {
+                    Button { reproduceDataSet() } label: {
                         Label("この設定を再現する", systemImage: "arrow.counterclockwise.circle.fill")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     
                     HStack {
-                        Button {
-                            showingEditSheet = true
-                        } label: {
-                            Label("編集", systemImage: "pencil")
-                        }
+                        Button { showingEditSheet = true } label: { Label("編集", systemImage: "pencil") }
                         .buttonStyle(.bordered)
-                        
                         Spacer()
-                        
-                        Button(role: .destructive) {
-                            showingDeleteAlert = true
-                        } label: {
-                            Label("削除", systemImage: "trash.fill")
-                        }
+                        Button(role: .destructive) { showingDeleteAlert = true } label: { Label("削除", systemImage: "trash.fill") }
                         .buttonStyle(.bordered)
                     }
                 }
                 .padding(.horizontal)
-                
-                Divider()
             }
+            .padding(.top)
         }
         .navigationTitle("ログ詳細")
         .alert("ログの削除", isPresented: $showingDeleteAlert) {
@@ -119,36 +103,27 @@ struct RigHistoryDetailView: View {
         dismiss()
     }
     
-    // MARK: 【新規追加】設定を再現する関数
     private func reproduceDataSet() {
-        // 過去のRigItemを新しいインスタンスとしてコピー
-        let copiedItems = dataSet.elements.map { item in
-            return RigItem(name: item.name, value: item.value, unit: item.unit, status: item.status)
+        let copiedItems = dataSet.rigItems.map { item in
+            return RigItem(name: item.name, value: item.value, stringValue: item.stringValue, unit: item.unit, status: item.status, template: item.template)
         }
         
-        // 新しいデータセットを作成
-        let newDataSet = RigDataSet(
-            date: Date(), // 日付は現在の日時
-            memo: "「\(dataSet.memo.isEmpty ? dateFormatter.string(from: dataSet.date) : dataSet.memo)」の設定を再現",
-            elements: copiedItems
-        )
+        let newDataSet = RigDataSet(date: Date(), memo: "「\(dataSet.memo.isEmpty ? dateFormatter.string(from: dataSet.date) : dataSet.memo)」の設定を再現")
+        newDataSet.rigItems = copiedItems
         
-        // Boatのデータセットに追加
         boat.rigDataSets.append(newDataSet)
-        
-        // 画面を閉じる
         dismiss()
     }
 }
 
-// RigItemSettingRow の定義は省略します
 struct RigItemSettingRow: View {
     let item: RigItem
     var body: some View {
         HStack {
             Text(item.name).foregroundColor(.primary)
             Spacer()
-            Text("\(item.value) \(item.unit)")
+            // valueがDoubleなのでStringに変換して表示
+            Text("\(String(format: "%.1f", item.value)) \(item.unit)")
                 .fontWeight(.bold)
             Image(systemName: "circle.fill")
                 .foregroundColor(item.statusColor)
