@@ -2,53 +2,57 @@ import SwiftUI
 import SwiftData
 
 struct EditRigTemplatesView: View {
-    @Bindable var currentBoat: Boat
+    @Environment(\.dismiss) private var dismiss
+    @Bindable var boat: Boat
+
     @State private var newTemplateName = ""
     @State private var newTemplateUnit = ""
-    @State private var selectedCategory = "クラッチ"
-    private let categories = ["クラッチ", "ブッシュ", "ストレッチャー", "オール", "その他"]
-    
+    @State private var selectedCategory = "Mast"
+    let categories = ["Mast", "Boom", "Hull", "Other"]
+
     var body: some View {
         Form {
-            Section(header: Text("リグ項目テンプレート")) {
-                ForEach(currentBoat.rigItemTemplates) { template in
-                    HStack {
-                        Text(template.name)
-                        Spacer()
-                        Text(template.unit)
-                            .foregroundColor(.gray)
-                    }
-                }
-                .onDelete(perform: deleteTemplate)
-            }
-            
-            Section(header: Text("新しい項目を追加")) {
-                TextField("項目名", text: $newTemplateName)
-                TextField("単位", text: $newTemplateUnit)
-                
-                Picker("カテゴリ", selection: $selectedCategory) {
+            Section("Add New Template") {
+                TextField("Item Name", text: $newTemplateName)
+                TextField("Unit (e.g., mm, deg)", text: $newTemplateUnit)
+                Picker("Category", selection: $selectedCategory) {
                     ForEach(categories, id: \.self) {
                         Text($0)
                     }
                 }
-                
-                Button(action: addTemplate) {
-                    Text("追加")
+                Button("Add Template") {
+                    addTemplate()
                 }
                 .disabled(newTemplateName.isEmpty)
             }
+
+            Section("Existing Templates") {
+                ForEach(boat.rigItemTemplates) { template in
+                    VStack(alignment: .leading) {
+                        Text(template.name).bold()
+                        Text("Unit: \(template.unit), Category: \(template.category)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .onDelete(perform: deleteTemplate)
+            }
         }
-        .navigationTitle("テンプレートを編集")
+        .navigationTitle("Edit Templates")
+        .navigationBarTitleDisplayMode(.inline)
     }
-    
+
     private func addTemplate() {
-        let newTemplate = RigItemTemplate(name: newTemplateName, unit: newTemplateUnit, category: selectedCategory)
-        currentBoat.rigItemTemplates.append(newTemplate)
+        //【修正点】RigItemTemplateの初期化時に、どのボートのものかを 'boat' 引数で指定します
+        let newTemplate = RigItemTemplate(name: newTemplateName, unit: newTemplateUnit, category: selectedCategory, boat: boat)
+        boat.rigItemTemplates.append(newTemplate)
+        
+        // 入力フィールドをリセット
         newTemplateName = ""
         newTemplateUnit = ""
     }
-    
+
     private func deleteTemplate(at offsets: IndexSet) {
-        currentBoat.rigItemTemplates.remove(atOffsets: offsets)
+        boat.rigItemTemplates.remove(atOffsets: offsets)
     }
 }

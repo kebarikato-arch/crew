@@ -1,6 +1,7 @@
 // RigDataModels.swift (修正後)
 
 import Foundation
+import SwiftUI
 import SwiftData
 
 // MARK: - Boat
@@ -62,6 +63,17 @@ final class RigItem {
     
     var dataSet: RigDataSet?
     var template: RigItemTemplate?
+    
+    var statusColor: Color {
+           switch status {
+           case .normal:
+               return .green
+           case .caution:
+               return .orange
+           case .critical:
+               return .red
+           }
+       }
     
     init(name: String, value: Double, stringValue: String? = nil, unit: String, status: RigItemStatus = .normal, template: RigItemTemplate?) {
         self.id = UUID()

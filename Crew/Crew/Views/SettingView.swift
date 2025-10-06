@@ -2,59 +2,45 @@ import SwiftUI
 import SwiftData
 
 struct SettingView: View {
-    @Query(sort: \Boat.name, animation: .default) private var allBoats: [Boat]
-    @Binding var selectedBoatID: String?
-    let currentBoat: Boat?
-    @Environment(\.modelContext) private var modelContext
+    @Binding var currentBoat: Boat
     
+    @Query private var boats: [Boat]
+    @Environment(\.modelContext) private var context
+
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
-                if let boat = currentBoat {
-                    Section(header: Text("現在のボート")) {
-                        HStack {
-                            Text("ボート名")
-                            Spacer()
-                            TextField("ボート名", text: .constant(boat.name))
-                                .multilineTextAlignment(.trailing)
-                                .disabled(true)
-                        }
-                        NavigationLink("リグアイテムのテンプレートを編集") {
-                            // MARK: 【修正】引数ラベルを boat: から currentBoat: に変更
-                            EditRigTemplatesView(currentBoat: boat)
-                        }
+                Section("現在のボート") {
+                    // ボート名の編集を可能にします
+                    TextField("ボート名", text: $currentBoat.name)
+                }
+
+                Section("設定") {
+                    NavigationLink("リグアイテムのテンプレートを編集") {
+                        EditRigTemplatesView(boat: currentBoat)
                     }
                 }
-                
-                Section(header: Text("アプリケーション設定")) {
-                    NavigationLink("プライバシーポリシー") { Text("プライバシーポリシーのページ") }
-                    NavigationLink("利用規約") { Text("利用規約のページ") }
+
+                Section("登録済みのボート") {
+                    ForEach(boats) { boat in
+                        Text(boat.name)
+                    }
+                    .onDelete(perform: deleteBoat)
                 }
                 
-                Section(header: Text("登録済みボートの管理")) {
-                    if allBoats.isEmpty {
-                        Text("ボートがありません").foregroundColor(.secondary)
-                    } else {
-                        List {
-                            ForEach(allBoats) { boat in Text(boat.name) }
-                            .onDelete(perform: deleteBoat)
-                        }
-                    }
+                Section("情報") {
+                    Link("プライバシーポリシー", destination: URL(string: "https://www.example.com/privacy")!)
+                    Link("利用規約", destination: URL(string: "https://www.example.com/terms")!)
                 }
             }
             .navigationTitle("設定")
         }
     }
-    
+
     private func deleteBoat(at offsets: IndexSet) {
         for index in offsets {
-            let boatToDelete = allBoats[index]
-            // 削除するボートが現在選択中のボートだった場合、選択を解除または他のボートに切り替える
-            if boatToDelete.id.uuidString == selectedBoatID {
-                let remainingBoats = allBoats.filter { $0.id != boatToDelete.id }
-                selectedBoatID = remainingBoats.first?.id.uuidString
-            }
-            modelContext.delete(boatToDelete)
+            let boatToDelete = boats[index]
+            context.delete(boatToDelete)
         }
     }
 }

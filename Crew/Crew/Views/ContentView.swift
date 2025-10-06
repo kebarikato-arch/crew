@@ -1,100 +1,80 @@
-// ContentView.swift (修正後)
-
 import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    // AppStorageの変数はMainTabViewに移動
-    var body: some View {
-        // MainTabViewを直接表示する
-        MainTabView()
-    }
-}
-
-
-// MARK: - メインのタブ画面
-struct MainTabView: View {
-    // データをここで一元管理する
-    @AppStorage("selectedBoatID") private var selectedBoatID: String?
     @Query(sort: \Boat.name) private var boats: [Boat]
+    @AppStorage("selectedBoatId") private var selectedBoatId: String?
     
-    private var currentBoat: Boat? {
-        // selectedBoatIDを基に現在選択中のボートを決定するロジックは変更なし
-        if let boatID = selectedBoatID,
-           let selectedID = UUID(uuidString: boatID),
-           let boat = boats.first(where: { $0.id == selectedID }) {
-            return boat
-        }
-        return boats.first
-    }
-    
+    // 状態としてBoatオブジェクトそのものではなく、選択されたBoatのIDを保持します
+    @State private var selection: Boat.ID?
+
     var body: some View {
-        TabView {
-            // MARK: HomeViewには選択中のボートIDをBindingで渡す
-            HomeView(selectedBoatID: $selectedBoatID)
-                .tabItem { Label("My Rig", systemImage: "water.waves") }
-            
-            Group {
-                if let boat = currentBoat {
-                    CheckListView(boat: boat)
-                } else {
-                    PlaceholderView(title: "チェックリスト", message: "ボートを追加・選択してください。")
-                }
+        Group {
+            if boats.isEmpty {
+                // ボートが1件もなければ、ウェルカム画面を全画面で表示します
+                WelcomeView()
+            } else if let selection = selection,
+                      // boats配列の中から、選択中のIDを持つボートを探します
+                      let selectedBoat = boats.first(where: { $0.id == selection }) {
+                
+                // 見つかったボートへのBinding（参照）を生成します
+                let boatBinding = Binding(
+                    get: { selectedBoat },
+                    set: { newBoat in
+                        // 子ビューでボートが変更されたら、IDを更新します
+                        self.selection = newBoat.id
+                        self.selectedBoatId = newBoat.id.uuidString
+                    }
+                )
+                
+                // メインのタブ画面に、ここで生成した安全なBindingを渡します
+                MainTabView(currentBoat: boatBinding)
+                
+            } else {
+                // 起動直後や、選択中のボートが見つからない場合に読み込み中を表示します
+                ProgressView()
             }
-            .tabItem { Label("Checklist", systemImage: "checklist") }
-            
-            Group {
-                if let boat = currentBoat {
-                    DataView(boat: boat)
-                } else {
-                    PlaceholderView(title: "データ分析", message: "ボートを追加・選択してください。")
-                }
-            }
-            .tabItem { Label("Data", systemImage: "chart.line.uptrend.xyaxis") }
-            
-            SettingView(
-                selectedBoatID: $selectedBoatID,
-                currentBoat: currentBoat
-            )
-            .tabItem { Label("Setting", systemImage: "gear") }
         }
         .onAppear {
-            // 選択中のボートIDがない場合、最初のボートを選択状態にする
-            if selectedBoatID == nil || boats.first(where: { $0.id.uuidString == selectedBoatID }) == nil {
-                selectedBoatID = boats.first?.id.uuidString
+             // アプリ起動時に最初のボートを選択します
+            if selection == nil {
+                validateSelection()
             }
         }
         .onChange(of: boats) {
-            // ボートの数が変わった時に選択状態を見直す
-            if selectedBoatID == nil {
-                selectedBoatID = boats.first?.id.uuidString
-            } else if let boatID = selectedBoatID, boats.first(where: { $0.id.uuidString == boatID }) == nil {
-                // 選択中のボートが削除された場合など
-                selectedBoatID = boats.first?.id.uuidString
-            }
+            // ボートが削除された場合などに、選択を更新します
+            validateSelection()
         }
-        // 【修正】ボートが0件の場合、WelcomeViewをシートとして表示する
-        .sheet(isPresented: .constant(boats.isEmpty)) {
-            // WelcomeViewを表示
-            WelcomeView()
-                // 下にスワイプして閉じられないようにする
-                .interactiveDismissDisabled()
+    }
+
+    /// 選択中のIDが有効かチェックし、無効なら先頭のボートを選択する関数です
+    private func validateSelection() {
+        // 現在の選択が有効でない場合、記憶されたIDか先頭のボートを再選択します
+        if selection == nil || !boats.contains(where: { $0.id == selection }) {
+            let boatToSelect = boats.first { $0.id.uuidString == selectedBoatId } ?? boats.first
+            selection = boatToSelect?.id
         }
     }
 }
 
-
-// MARK: - 共通のプレースホルダービュー
-struct PlaceholderView: View {
-    let title: String
-    let message: String
+/// MainTabViewはBinding<Boat>を受け取るだけのシンプルな構造です
+struct MainTabView: View {
+    @Binding var currentBoat: Boat
     
     var body: some View {
-        VStack(spacing: 15) {
-            Image(systemName: "sailboat.circle").font(.system(size: 60)).foregroundColor(.secondary)
-            Text(title).font(.title2).fontWeight(.bold)
-            Text(message).font(.subheadline).foregroundColor(.secondary)
-                .multilineTextAlignment(.center).padding(.horizontal)
+        TabView {
+            // 全てのタブ画面に、受け取ったBindingをそのまま渡します
+            HomeView(currentBoat: $currentBoat)
+                .tabItem { Label("My Rig", systemImage: "ferry.fill") }
+            
+            CheckListView(currentBoat: $currentBoat)
+                .tabItem { Label("Checklist", systemImage: "list.bullet.clipboard.fill") }
+            
+            DataView(currentBoat: $currentBoat)
+                .tabItem { Label("Data", systemImage: "chart.xyaxis.line") }
+            
+            SettingView(currentBoat: $currentBoat)
+                .tabItem { Label("Setting", systemImage: "gear") }
         }
     }
 }

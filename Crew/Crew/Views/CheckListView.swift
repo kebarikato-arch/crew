@@ -1,129 +1,114 @@
 import SwiftUI
 import SwiftData
 
-struct CheckboxToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack {
-            configuration.label
-                .strikethrough(configuration.isOn)
-                .foregroundColor(configuration.isOn ? .secondary : .primary)
-            Spacer()
-            Image(systemName: configuration.isOn ? "checkmark.circle.fill" : "circle")
-                .resizable()
-                .frame(width: 24, height: 24)
-                .foregroundColor(configuration.isOn ? .blue : .gray)
-                .onTapGesture {
-                    configuration.isOn.toggle()
+struct CheckListView: View {
+    @Binding var currentBoat: Boat
+    
+    @Environment(\.modelContext) private var context
+    @State private var showingAddItemView = false
+    @State private var itemToEdit: CheckListItem?
+
+    private func filteredItems(for category: String) -> [CheckListItem] {
+        currentBoat.checklist.filter { $0.category == category }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section(header: Text("セーリング前")) {
+                    ForEach(filteredItems(for: "セーリング前")) { item in
+                        CheckListItemRow(item: item)
+                    }
+                    .onDelete { indices in
+                        deleteItems(at: indices, in: "セーリング前")
+                    }
                 }
+                
+                Section(header: Text("セーリング後")) {
+                    ForEach(filteredItems(for: "セーリング後")) { item in
+                        CheckListItemRow(item: item)
+                    }
+                    .onDelete { indices in
+                        deleteItems(at: indices, in: "セーリング後")
+                    }
+                }
+            }
+            .navigationTitle("Checklist")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        itemToEdit = nil
+                        showingAddItemView = true
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    EditButton()
+                }
+            }
+            .sheet(isPresented: $showingAddItemView) {
+                AddEditChecklistItemView(boat: currentBoat, itemToEdit: $itemToEdit)
+            }
+        }
+    }
+    
+    private func deleteItems(at offsets: IndexSet, in category: String) {
+        let itemsToDelete = offsets.map { filteredItems(for: category)[$0] }
+        for item in itemsToDelete {
+            context.delete(item)
         }
     }
 }
 
-struct CheckListView: View {
-    // MARK: 【修正】 @Bindableを使用してboatオブジェクトへのBindingを受け取る
-    @Bindable var boat: Boat
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.editMode) private var editMode
-    
-    @State private var showingAddItemSheet = false
-    @State private var itemToEdit: CheckListItem?
-    
-    private let categories = CheckListItem.Category.allCases
-    
+struct CheckListItemRow: View {
+    @Bindable var item: CheckListItem
+
     var body: some View {
-        NavigationView {
-            Form {
-                ForEach(categories, id: \.self) { category in
-                    Section(header: Text(category.rawValue)) {
-                        // MARK: 【修正】 boat.checklistを直接ループし、中でフィルタリングする
-                        ForEach(boat.checklist) { item in
-                            if item.category == category.rawValue {
-                                Toggle(isOn: Binding(
-                                    get: { item.isCompleted },
-                                    set: { item.isCompleted = $0 }
-                                )) {
-                                    Text(item.task)
-                                }
-                                .toggleStyle(CheckboxToggleStyle())
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    if editMode?.wrappedValue.isEditing == false {
-                                        itemToEdit = item
-                                    }
-                                }
-                            }
-                        }
-                        .onDelete(perform: deleteItems)
-                    }
-                }
-            }
-            .navigationTitle("チェックリスト")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) { EditButton() }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingAddItemSheet = true }) {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
-            .sheet(isPresented: $showingAddItemSheet) {
-                AddEditChecklistItemView(boat: boat, itemToEdit: nil)
-            }
-            .sheet(item: $itemToEdit) { item in
-                AddEditChecklistItemView(boat: boat, itemToEdit: item)
-            }
+        Toggle(isOn: $item.isCompleted) {
+            Text(item.task)
+                .strikethrough(item.isCompleted, color: .secondary)
+                .foregroundColor(item.isCompleted ? .secondary : .primary)
         }
-    }
-    
-    private func deleteItems(at offsets: IndexSet) {
-        for index in offsets {
-            let itemToDelete = boat.checklist[index]
-            modelContext.delete(itemToDelete)
-        }
-        // boat.checklist.remove(atOffsets: offsets) を使わない
     }
 }
 
 struct AddEditChecklistItemView: View {
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
     @Bindable var boat: Boat
-    let itemToEdit: CheckListItem?
+    @Binding var itemToEdit: CheckListItem?
     
-    @State private var itemTask: String = ""
-    @State private var selectedCategory: CheckListItem.Category = .beforeSail
-    
-    private var isEditing: Bool { itemToEdit != nil }
-    private var title: String { isEditing ? "項目を編集" : "項目を追加" }
+    @State private var task: String = ""
+    @State private var category: String = "セーリング前"
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
-                Section(header: Text("項目情報")) {
-                    TextField("項目名", text: $itemTask)
-                    Picker("カテゴリ", selection: $selectedCategory) {
-                        ForEach(CheckListItem.Category.allCases, id: \.self) { category in
-                            Text(category.rawValue).tag(category)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                TextField("タスク", text: $task)
+                Picker("カテゴリ", selection: $category) {
+                    Text("セーリング前").tag("セーリング前")
+                    Text("セーリング後").tag("セーリング後")
                 }
+                .pickerStyle(SegmentedPickerStyle())
             }
-            .navigationTitle(title)
+            .navigationTitle(itemToEdit == nil ? "項目を追加" : "項目を編集")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("キャンセル") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("キャンセル") { dismiss() }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
                         saveItem()
                         dismiss()
                     }
-                    .disabled(itemTask.isEmpty)
+                    .disabled(task.isEmpty)
                 }
             }
             .onAppear {
                 if let item = itemToEdit {
-                    itemTask = item.task
-                    selectedCategory = CheckListItem.Category(rawValue: item.category) ?? .beforeSail
+                    task = item.task
+                    category = item.category
                 }
             }
         }
@@ -131,10 +116,11 @@ struct AddEditChecklistItemView: View {
     
     private func saveItem() {
         if let item = itemToEdit {
-            item.task = itemTask
-            item.category = selectedCategory.rawValue
+            item.task = task
+            item.category = category
         } else {
-            let newItem = CheckListItem(task: itemTask, isCompleted: false, category: selectedCategory.rawValue)
+            //【修正点】CheckListItemの初期化時に、どのボートのものかを 'boat' 引数で指定します
+            let newItem = CheckListItem(task: task, isCompleted: false, category: category, boat: boat)
             boat.checklist.append(newItem)
         }
     }

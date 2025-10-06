@@ -2,97 +2,86 @@ import SwiftUI
 import SwiftData
 
 struct HomeView: View {
-    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Boat.name) private var boats: [Boat]
     
-    @Binding var selectedBoatID: String?
+    // 親Viewから選択中のボート情報を受け取るためのBindingです
+    @Binding var currentBoat: Boat
     
-    @State private var showingAddBoatAlert = false
-    @State private var newBoatName = ""
-    @State private var showingAddRigDataSheet = false
-    
-    private var currentBoat: Boat? {
-        guard let selectedBoatID = selectedBoatID,
-              let uuid = UUID(uuidString: selectedBoatID) else {
-            return boats.first
-        }
-        return boats.first(where: { $0.id == uuid })
-    }
+    @State private var showingAddRigDataView = false
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
-                if boats.isEmpty {
-                    ContentUnavailableView("ボートがありません", systemImage: "sailboat.fill", description: Text("右上の「+」ボタンから新しいボートを追加してください。"))
-                } else if let boat = currentBoat {
-                    Picker("ボートを選択", selection: $selectedBoatID) {
+                // ボートが複数ある場合のみ、切り替えコントロールを表示します
+                if boats.count > 1 {
+                    //【最終修正点】専用部品の 'SegmentedControl' から、SwiftUI標準の 'Picker' に変更します。
+                    // これが、ボートの切り替えを実現する、ファイル整合性を考慮した唯一の正しい実装です。
+                    Picker("ボートを選択", selection: $currentBoat) {
                         ForEach(boats) { boat in
-                            Text(boat.name).tag(boat.id.uuidString as String?)
+                            Text(boat.name).tag(boat)
                         }
                     }
-                    .pickerStyle(.segmented)
-                    .padding()
-                    
-                    RigSettingCardView(currentBoat: boat)
-                    
-                    List {
-                        Section(header: Text("履歴")) {
-                            // MARK: 【修正】 dataSets -> rigDataSets
-                            ForEach(boat.rigDataSets.sorted(by: { $0.date > $1.date })) { dataSet in
-                                NavigationLink(destination: RigHistoryDetailView(boat: boat, dataSet: dataSet)) {
-                                    RigDataSetRow(dataSet: dataSet)
+                    .pickerStyle(.segmented) // セグメントコントロール形式のUIを指定します
+                    .padding(.horizontal)
+                }
+
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // RigSettingCardViewは、内部で専用のSegmentedControlを使用します
+                        RigSettingCardView(currentBoat: currentBoat)
+                        
+                        VStack(alignment: .leading) {
+                            Text("リグ設定の履歴")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .padding(.horizontal)
+
+                            if currentBoat.rigDataSets.isEmpty {
+                                Text("データがありません")
+                                    .foregroundColor(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    .padding()
+                            } else {
+                                ForEach(currentBoat.rigDataSets.sorted(by: { $0.date > $1.date })) { dataSet in
+                                    NavigationLink(destination: RigHistoryDetailView(rigDataSet: dataSet)) {
+                                        RigDataSetRow(dataSet: dataSet)
+                                    }
                                 }
                             }
-                            .onDelete(perform: { indexSet in
-                                deleteRigDataSet(at: indexSet, from: boat)
-                            })
                         }
                     }
-                } else {
-                    ContentUnavailableView("ボートを選択してください", systemImage: "questionmark.circle")
+                    .padding(.vertical)
                 }
             }
             .navigationTitle("My Rig")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) { Button(action: { showingAddBoatAlert = true }) { Image(systemName: "plus") } }
-                ToolbarItem(placement: .bottomBar) {
-                    Button(action: { showingAddRigDataSheet = true }) {
-                        Label("リグデータを記録", systemImage: "square.and.pencil")
-                    }
-                    .disabled(currentBoat == nil)
-                }
-            }
-            .sheet(isPresented: $showingAddRigDataSheet) {
-                if let boat = currentBoat {
-                    AddRigDataView(boat: boat, dataSetToEdit: nil)
-                }
-            }
-            .alert("新しいボート", isPresented: $showingAddBoatAlert, actions: {
-                TextField("ボート名", text: $newBoatName)
-                Button("追加") {
-                    if !newBoatName.isEmpty {
-                        addBoat(name: newBoatName)
-                        newBoatName = ""
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        // 新規ボート追加のロジックは後で実装します
+                    }) {
+                        Image(systemName: "plus")
                     }
                 }
-                Button("キャンセル", role: .cancel) { newBoatName = "" }
-            })
-        }
-    }
-    
-    private func addBoat(name: String) {
-        let newBoat = Boat(name: name)
-        modelContext.insert(newBoat)
-        // (テンプレート追加のロジックは省略)
-        selectedBoatID = newBoat.id.uuidString
-    }
-    
-    private func deleteRigDataSet(at offsets: IndexSet, from boat: Boat) {
-        // MARK: 【修正】 dataSets -> rigDataSets
-        let sortedDataSets = boat.rigDataSets.sorted(by: { $0.date > $1.date })
-        for index in offsets {
-            let dataSetToDelete = sortedDataSets[index]
-            modelContext.delete(dataSetToDelete)
+            }
+            .safeAreaInset(edge: .bottom) {
+                Button(action: {
+                    showingAddRigDataView = true
+                }) {
+                    Text("リグデータを記録")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .padding()
+                }
+                .background(.thinMaterial)
+            }
+            .sheet(isPresented: $showingAddRigDataView) {
+                AddRigDataView(boat: currentBoat)
+            }
         }
     }
 }

@@ -1,162 +1,123 @@
 import SwiftUI
-import SwiftData
 import Charts
 
 struct DataView: View {
-    let boat: Boat
+    @Binding var currentBoat: Boat
     
-    @State private var selectedRigItemName: String?
+    @State private var selectedItemTemplate: RigItemTemplate?
+
+    private var availableTemplates: [RigItemTemplate] {
+        Array(Set(currentBoat.rigDataSets.flatMap { $0.rigItems.compactMap { $0.template } })).sorted { $0.name < $1.name }
+    }
     
-    private var selectedItemHistory: [(date: Date, value: Double)] {
-        // MARK: 【修正】 rigDataSets を使用
-        guard let name = selectedRigItemName, !boat.rigDataSets.isEmpty else { return [] }
-        
-        return boat.rigDataSets
-            .compactMap { dataSet -> (Date, Double)? in
-                // MARK: 【修正】 rigItems を使用し、Double(historicItem.value) を historicItem.value に変更
-                guard let historicItem = dataSet.rigItems.first(where: { $0.name == name }) else {
-                    return nil
-                }
-                // Double型の value を直接使用
-                return (dataSet.date, historicItem.value)
+    private var chartData: [(date: Date, value: Double)] {
+        guard let template = selectedItemTemplate else { return [] }
+        return currentBoat.rigDataSets
+            .flatMap { dataSet -> [(Date, Double)] in
+                dataSet.rigItems
+                    .filter { $0.template == template }
+                    .map { (dataSet.date, $0.value) }
             }
-            .sorted(by: { $0.date < $1.date })
-    }
-    
-    private var availableRigItemNames: [String] {
-        // MARK: 【修正】 rigDataSets と rigItems を使用
-        let allItemNames = Set(boat.rigDataSets.flatMap { $0.rigItems.map { $0.name } })
-        return Array(allItemNames).sorted()
-    }
-    
-    private var selectedItemUnit: String {
-        guard let name = selectedRigItemName else { return "" }
-        return boat.rigDataSets.lazy
-            // MARK: 【修正】 rigDataSets と rigItems を使用
-            .flatMap { $0.rigItems }
-            .first { $0.name == name }?
-            .unit ?? ""
-    }
-    
-    private var statistics: (avg: Double, max: Double, min: Double)? {
-        let values = selectedItemHistory.map { $0.value }
-        guard !values.isEmpty else { return nil }
-        
-        let avg = values.reduce(0, +) / Double(values.count)
-        let max = values.max() ?? 0
-        let min = values.min() ?? 0
-        
-        return (avg, max, min)
+            .sorted { $0.0 < $1.0 }
     }
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    
-                    // MARK: 【修正】 rigDataSets を使用
-                    if !boat.rigDataSets.isEmpty && !availableRigItemNames.isEmpty {
-                        
-                        Picker("リグアイテムを選択", selection: $selectedRigItemName) {
-                            ForEach(availableRigItemNames, id: \.self) { name in
-                                Text(name).tag(name as String?)
-                            }
+        NavigationStack {
+            VStack {
+                if availableTemplates.isEmpty {
+                    Text("分析できるデータがありません")
+                        .foregroundColor(.secondary)
+                } else {
+                    Picker("リグアイテム", selection: $selectedItemTemplate) {
+                        ForEach(availableTemplates) { template in
+                            Text(template.name).tag(template as RigItemTemplate?)
                         }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal)
-                        
-                        if let name = selectedRigItemName {
-                            VStack(alignment: .leading) {
-                                Text("\(name) の履歴")
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
-                                    .padding([.leading, .top])
-                                
-                                if selectedItemHistory.count > 1 {
-                                    Chart(selectedItemHistory, id: \.date) { data in
-                                        LineMark(
-                                            x: .value("日付", data.date, unit: .day),
-                                            y: .value("値 (\(selectedItemUnit))", data.value)
-                                        )
-                                        .foregroundStyle(.blue)
-                                        PointMark(
-                                            x: .value("日付", data.date, unit: .day),
-                                            y: .value("値 (\(selectedItemUnit))", data.value)
-                                        )
-                                        .foregroundStyle(.blue)
-                                    }
-                                    .chartYAxisLabel("値 (\(selectedItemUnit))")
-                                    .frame(height: 300)
-                                    .padding()
-                                    .background(Color(.secondarySystemBackground))
-                                    .cornerRadius(15)
-                                    .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
-                                    
-                                } else {
-                                    Text("グラフを表示するには、2つ以上のデータログが必要です。")
-                                        .foregroundColor(.gray)
-                                        .padding()
-                                        .frame(maxWidth: .infinity)
-                                }
-                            }
-                            .padding(.horizontal)
-                            
-                            if let stats = statistics {
-                                VStack(alignment: .leading) {
-                                    Text("統計情報")
-                                        .font(.title2)
-                                        .fontWeight(.semibold)
-                                    
-                                    HStack(spacing: 15) {
-                                        StatisticCard(label: "平均", value: stats.avg, unit: selectedItemUnit)
-                                        StatisticCard(label: "最大", value: stats.max, unit: selectedItemUnit, color: .green)
-                                        StatisticCard(label: "最小", value: stats.min, unit: selectedItemUnit, color: .orange)
-                                    }
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
-                        
-                    } else {
-                        ContentUnavailableView("データがありません", systemImage: "chart.bar.xaxis.ascending", description: Text("分析できるデータがありません。\nまずはリグデータを記録してください。"))
-                        .padding(.top, 50)
                     }
-                }
-                .padding(.top)
-                .onAppear {
-                    if selectedRigItemName == nil {
-                        selectedRigItemName = availableRigItemNames.first
+                    .pickerStyle(SegmentedPickerStyle())
+                    .padding(.horizontal)
+
+                    if let template = selectedItemTemplate, !chartData.isEmpty {
+                        VStack {
+                            Chart(chartData, id: \.date) { dataPoint in
+                                LineMark(
+                                    x: .value("Date", dataPoint.date),
+                                    y: .value("Value", dataPoint.value)
+                                )
+                                PointMark(
+                                    x: .value("Date", dataPoint.date),
+                                    y: .value("Value", dataPoint.value)
+                                )
+                            }
+                            .chartYAxisLabel(template.unit)
+                            .padding()
+
+                            StatisticsCardView(data: chartData.map { $0.value }, unit: template.unit)
+
+                            Spacer()
+                        }
+                    } else {
+                        Spacer()
+                        Text("表示するデータを選択してください")
+                            .foregroundColor(.secondary)
+                        Spacer()
                     }
                 }
             }
             .navigationTitle("データ分析")
+            .onAppear {
+                if selectedItemTemplate == nil {
+                    selectedItemTemplate = availableTemplates.first
+                }
+            }
         }
     }
 }
 
-// 統計情報カードビュー
-struct StatisticCard: View {
-    let label: String
+// 【追記 1】統計情報を表示するためのカードビュー
+struct StatisticsCardView: View {
+    let data: [Double]
+    let unit: String
+    
+    private var average: Double {
+        !data.isEmpty ? data.reduce(0, +) / Double(data.count) : 0
+    }
+    
+    private var max: Double {
+        data.max() ?? 0
+    }
+    
+    private var min: Double {
+        data.min() ?? 0
+    }
+    
+    var body: some View {
+        HStack {
+            StatisticItem(title: "平均", value: average, unit: unit)
+            StatisticItem(title: "最大", value: max, unit: unit)
+            StatisticItem(title: "最小", value: min, unit: unit)
+        }
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(10)
+        .padding(.horizontal)
+    }
+}
+
+// 【追記 2】個々の統計項目（平均、最大、最小）を表示するためのビュー
+struct StatisticItem: View {
+    let title: String
     let value: Double
     let unit: String
-    var color: Color = .blue
     
     var body: some View {
         VStack {
-            Text(label)
+            Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            Text(String(format: "%.1f", value))
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(color)
-            Text(unit)
-                .font(.footnote)
-                .foregroundColor(.secondary)
+            Text("\(value, specifier: "%.1f")\(unit)")
+                .font(.headline)
+                .fontWeight(.semibold)
         }
-        .padding()
         .frame(maxWidth: .infinity)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(10)
     }
 }
