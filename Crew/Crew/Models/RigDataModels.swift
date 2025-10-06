@@ -1,51 +1,70 @@
+// RigDataModels.swift (修正後)
+
 import Foundation
 import SwiftData
-import SwiftUI
 
+// MARK: - Boat
 @Model
-class Boat {
-    @Attribute(.unique) var id = UUID()
+final class Boat {
+    @Attribute(.unique) var id: UUID
     var name: String
     
-    @Relationship(deleteRule: .cascade) var rigDataSets = [RigDataSet]()
-    @Relationship(deleteRule: .cascade) var checklist = [CheckListItem]() // checklistItems -> checklist に統一
-    @Relationship(deleteRule: .cascade) var rigItemTemplates = [RigItemTemplate]()
+    @Relationship(deleteRule: .cascade, inverse: \RigDataSet.boat)
+    var rigDataSets: [RigDataSet] = []
     
+    @Relationship(deleteRule: .cascade, inverse: \CheckListItem.boat)
+    var checklist: [CheckListItem] = []
+    
+    @Relationship(deleteRule: .cascade, inverse: \RigItemTemplate.boat)
+    var rigItemTemplates: [RigItemTemplate] = []
+    
+    // 【ここを追記】
+    // 新しいBoatオブジェクトを作成するためのイニシャライザ
     init(name: String) {
+        self.id = UUID()
         self.name = name
+        self.rigDataSets = []
+        self.checklist = []
+        self.rigItemTemplates = []
     }
 }
 
+// MARK: - RigDataSet
 @Model
-class RigDataSet {
-    @Attribute(.unique) var id = UUID()
+final class RigDataSet {
+    @Attribute(.unique) var id: UUID
     var date: Date
     var memo: String
     
     @Relationship(deleteRule: .cascade, inverse: \RigItem.dataSet)
-    var rigItems = [RigItem]()
+    var rigItems: [RigItem] = []
     
-    init(date: Date, memo: String) {
+    var boat: Boat?
+    
+    init(date: Date, memo: String = "", boat: Boat?) {
+        self.id = UUID()
         self.date = date
         self.memo = memo
+        self.boat = boat
     }
 }
 
+
+// MARK: - RigItem
 @Model
-class RigItem {
-    @Attribute(.unique) var id = UUID()
+final class RigItem {
+    @Attribute(.unique) var id: UUID
     var name: String
     var value: Double
     var stringValue: String?
     var unit: String
     var status: RigItemStatus
     
-    // RigItemTemplateとのリレーションシップ
+    var dataSet: RigDataSet?
     var template: RigItemTemplate?
     
-    var dataSet: RigDataSet?
-    
-    init(name: String, value: Double, stringValue: String? = nil, unit: String, status: RigItemStatus, template: RigItemTemplate?) {
+    init(name: String, value: Double, stringValue: String? = nil, unit: String, status: RigItemStatus = .normal, template: RigItemTemplate?) {
+        self.id = UUID()
         self.name = name
         self.value = value
         self.stringValue = stringValue
@@ -53,51 +72,50 @@ class RigItem {
         self.status = status
         self.template = template
     }
-    
-    var statusColor: Color {
-        switch status {
-        case .normal: .green
-        case .caution: .yellow
-        case .critical: .red
-        }
-    }
 }
 
-enum RigItemStatus: String, Codable, CaseIterable {
+enum RigItemStatus: String, Codable {
     case normal = "正常"
     case caution = "確認推奨"
     case critical = "要交換/調整"
 }
 
+
+// MARK: - CheckListItem
 @Model
-class CheckListItem {
-    @Attribute(.unique) var id = UUID()
+final class CheckListItem {
+    @Attribute(.unique) var id: UUID
     var task: String
     var isCompleted: Bool
     var category: String
     
-    init(task: String, isCompleted: Bool, category: String) {
+    var boat: Boat?
+    
+    init(task: String, isCompleted: Bool = false, category: String, boat: Boat?) {
+        self.id = UUID()
         self.task = task
         self.isCompleted = isCompleted
         self.category = category
-    }
-    
-    enum Category: String, CaseIterable {
-        case beforeSail = "セーリング前"
-        case afterSail = "セーリング後"
+        self.boat = boat
     }
 }
 
+
+// MARK: - RigItemTemplate
 @Model
-class RigItemTemplate {
-    @Attribute(.unique) var id = UUID()
+final class RigItemTemplate {
+    @Attribute(.unique) var id: UUID
     var name: String
     var unit: String
     var category: String
     
-    init(name: String, unit: String, category: String) {
+    var boat: Boat?
+    
+    init(name: String, unit: String, category: String, boat: Boat?) {
+        self.id = UUID()
         self.name = name
         self.unit = unit
         self.category = category
+        self.boat = boat
     }
 }

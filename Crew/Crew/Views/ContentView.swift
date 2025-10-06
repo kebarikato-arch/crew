@@ -1,23 +1,25 @@
-// ContentView.swift の全文
+// ContentView.swift (修正後)
 
 import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    // ユーザーが最後に選択したボートのIDを記憶します
-    @AppStorage("selectedBoatID") private var selectedBoatID: String?
-    
+    // AppStorageの変数はMainTabViewに移動
     var body: some View {
-        MainTabView(selectedBoatID: $selectedBoatID)
+        // MainTabViewを直接表示する
+        MainTabView()
     }
 }
 
+
 // MARK: - メインのタブ画面
 struct MainTabView: View {
+    // データをここで一元管理する
+    @AppStorage("selectedBoatID") private var selectedBoatID: String?
     @Query(sort: \Boat.name) private var boats: [Boat]
-    @Binding var selectedBoatID: String?
     
     private var currentBoat: Boat? {
+        // selectedBoatIDを基に現在選択中のボートを決定するロジックは変更なし
         if let boatID = selectedBoatID,
            let selectedID = UUID(uuidString: boatID),
            let boat = boats.first(where: { $0.id == selectedID }) {
@@ -28,7 +30,7 @@ struct MainTabView: View {
     
     var body: some View {
         TabView {
-            // MARK: 【修正】HomeViewに選択中のボートIDをBindingで渡す
+            // MARK: HomeViewには選択中のボートIDをBindingで渡す
             HomeView(selectedBoatID: $selectedBoatID)
                 .tabItem { Label("My Rig", systemImage: "water.waves") }
             
@@ -57,18 +59,30 @@ struct MainTabView: View {
             .tabItem { Label("Setting", systemImage: "gear") }
         }
         .onAppear {
-            if selectedBoatID == nil, let firstBoat = boats.first {
-                selectedBoatID = firstBoat.id.uuidString
-            }
-        }
-        .onChange(of: boats) {
-             // ボートが削除されるなどで選択中のIDが無効になった場合、先頭のボートを選択する
-            if let boatID = selectedBoatID, boats.first(where: { $0.id.uuidString == boatID }) == nil {
+            // 選択中のボートIDがない場合、最初のボートを選択状態にする
+            if selectedBoatID == nil || boats.first(where: { $0.id.uuidString == selectedBoatID }) == nil {
                 selectedBoatID = boats.first?.id.uuidString
             }
         }
+        .onChange(of: boats) {
+            // ボートの数が変わった時に選択状態を見直す
+            if selectedBoatID == nil {
+                selectedBoatID = boats.first?.id.uuidString
+            } else if let boatID = selectedBoatID, boats.first(where: { $0.id.uuidString == boatID }) == nil {
+                // 選択中のボートが削除された場合など
+                selectedBoatID = boats.first?.id.uuidString
+            }
+        }
+        // 【修正】ボートが0件の場合、WelcomeViewをシートとして表示する
+        .sheet(isPresented: .constant(boats.isEmpty)) {
+            // WelcomeViewを表示
+            WelcomeView()
+                // 下にスワイプして閉じられないようにする
+                .interactiveDismissDisabled()
+        }
     }
 }
+
 
 // MARK: - 共通のプレースホルダービュー
 struct PlaceholderView: View {
