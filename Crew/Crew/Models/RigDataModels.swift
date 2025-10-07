@@ -1,5 +1,3 @@
-// RigDataModels.swift (修正後)
-
 import Foundation
 import SwiftUI
 import SwiftData
@@ -10,6 +8,7 @@ final class Boat {
     @Attribute(.unique) var id: UUID
     var name: String
     
+    // @Relationshipを持つプロパティは、SwiftDataが管理するため、手動で初期化する必要はありません。
     @Relationship(deleteRule: .cascade, inverse: \RigDataSet.boat)
     var rigDataSets: [RigDataSet] = []
     
@@ -19,27 +18,24 @@ final class Boat {
     @Relationship(deleteRule: .cascade, inverse: \RigItemTemplate.boat)
     var rigItemTemplates: [RigItemTemplate] = []
     
-    // 【ここを追記】
-    // 新しいBoatオブジェクトを作成するためのイニシャライザ
+    // 【最重要修正点】
+    // このinit(name:)メソッドが、アプリから新しいボートを作成する際に呼ばれます。
+    // @Relationshipを持つ配列の初期化を削除し、nameとidの設定のみを行います。
     init(name: String) {
         self.id = UUID()
         self.name = name
-        self.rigDataSets = []
-        self.checklist = []
-        self.rigItemTemplates = []
     }
 }
 
+// (以下、他のモデルの定義は変更ありません)
 // MARK: - RigDataSet
 @Model
 final class RigDataSet {
     @Attribute(.unique) var id: UUID
     var date: Date
     var memo: String
-    
     @Relationship(deleteRule: .cascade, inverse: \RigItem.dataSet)
     var rigItems: [RigItem] = []
-    
     var boat: Boat?
     
     init(date: Date, memo: String = "", boat: Boat?) {
@@ -50,7 +46,6 @@ final class RigDataSet {
     }
 }
 
-
 // MARK: - RigItem
 @Model
 final class RigItem {
@@ -60,20 +55,16 @@ final class RigItem {
     var stringValue: String?
     var unit: String
     var status: RigItemStatus
-    
     var dataSet: RigDataSet?
     var template: RigItemTemplate?
     
     var statusColor: Color {
-           switch status {
-           case .normal:
-               return .green
-           case .caution:
-               return .orange
-           case .critical:
-               return .red
-           }
-       }
+        switch status {
+        case .normal: .green
+        case .caution: .orange
+        case .critical: .red
+        }
+    }
     
     init(name: String, value: Double, stringValue: String? = nil, unit: String, status: RigItemStatus = .normal, template: RigItemTemplate?) {
         self.id = UUID()
@@ -92,7 +83,6 @@ enum RigItemStatus: String, Codable {
     case critical = "要交換/調整"
 }
 
-
 // MARK: - CheckListItem
 @Model
 final class CheckListItem {
@@ -100,7 +90,6 @@ final class CheckListItem {
     var task: String
     var isCompleted: Bool
     var category: String
-    
     var boat: Boat?
     
     init(task: String, isCompleted: Bool = false, category: String, boat: Boat?) {
@@ -112,7 +101,6 @@ final class CheckListItem {
     }
 }
 
-
 // MARK: - RigItemTemplate
 @Model
 final class RigItemTemplate {
@@ -120,7 +108,6 @@ final class RigItemTemplate {
     var name: String
     var unit: String
     var category: String
-    
     var boat: Boat?
     
     init(name: String, unit: String, category: String, boat: Boat?) {
