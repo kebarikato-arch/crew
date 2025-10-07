@@ -1,36 +1,45 @@
+import SwiftData
 import SwiftUI
 import SwiftData
 
 struct WelcomeView: View {
-    @Environment(\.modelContext) private var context
-    @State private var newBoatName: String = ""
+    @Environment(\.modelContext) private var modelContext
+    @State private var newBoatName = ""
     
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
             
-            Text("ようこそ Crewへ")
+            Image(systemName: "sailboat.circle.fill")
+                .font(.system(size: 80))
+                .foregroundColor(.accentColor)
+            
+            Text("Crewへようこそ")
                 .font(.largeTitle)
                 .fontWeight(.bold)
             
-            Text("最初のボートを登録しましょう")
+            Text("まずはあなたのボートを登録しましょう。")
+                .font(.headline)
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
             
             TextField("ボート名", text: $newBoatName)
                 .textFieldStyle(.roundedBorder)
                 .padding(.horizontal, 40)
-            
-            Button("登録する", action: addBoat)
+
+            Button("ボートを登録する", action: addBoat)
                 .buttonStyle(.borderedProminent)
                 .disabled(newBoatName.isEmpty)
-            
+
             Spacer()
         }
+        .padding()
     }
     
     private func addBoat() {
-        guard !newBoatName.isEmpty else { return }
+        guard !newBoatName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         let newBoat = Boat(name: newBoatName)
-        context.insert(newBoat)
+        modelContext.insert(newBoat)
     }
 }

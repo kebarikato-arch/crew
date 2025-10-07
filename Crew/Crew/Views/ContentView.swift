@@ -3,67 +3,51 @@ import SwiftData
 
 struct ContentView: View {
     @Query(sort: \Boat.name) private var boats: [Boat]
-    @AppStorage("selectedBoatId") private var selectedBoatId: String?
     
-    // 状態としてBoatオブジェクトそのものではなく、選択されたBoatのIDを保持します
-    @State private var selection: Boat.ID?
+    // ユーザーが最後に選択したボートのIDを記憶する、唯一の情報源です
+    @AppStorage("selectedBoatId") private var selectedBoatId: String?
 
     var body: some View {
         Group {
             if boats.isEmpty {
-                // ボートが1件もなければ、ウェルカム画面を全画面で表示します
+                // ボートが1件もなければ、ウェルカム画面を表示します
                 WelcomeView()
-            } else if let selection = selection,
-                      // boats配列の中から、選択中のIDを持つボートを探します
-                      let selectedBoat = boats.first(where: { $0.id == selection }) {
+            } else {
+                // 表示すべきボートを、記憶されたIDを元に安全に探し出します
+                // 万が一見つからなくても、先頭のボートを選択するためクラッシュしません
+                let boatToShow = boats.first { $0.id.uuidString == selectedBoatId } ?? boats.first!
                 
-                // 見つかったボートへのBinding（参照）を生成します
-                let boatBinding = Binding(
-                    get: { selectedBoat },
+                // 子ビュー（HomeViewなど）での変更を親（このView）に伝えるためのBindingを生成します
+                let boatBinding = Binding<Boat>(
+                    get: { boatToShow },
                     set: { newBoat in
-                        // 子ビューでボートが変更されたら、IDを更新します
-                        self.selection = newBoat.id
-                        self.selectedBoatId = newBoat.id.uuidString
+                        // 子ビューでボートが切り替えられたら、記憶されているIDを更新します
+                        selectedBoatId = newBoat.id.uuidString
                     }
                 )
-                
-                // メインのタブ画面に、ここで生成した安全なBindingを渡します
+                // MainTabViewに、ここで生成した安全なBindingを渡します
                 MainTabView(currentBoat: boatBinding)
-                
-            } else {
-                // 起動直後や、選択中のボートが見つからない場合に読み込み中を表示します
-                ProgressView()
             }
         }
-        .onAppear {
-             // アプリ起動時に最初のボートを選択します
-            if selection == nil {
-                validateSelection()
+        // .taskは、Viewが表示された時や、監視対象の値(ここではboats.count)が変化した時に
+        // 安全に処理を実行するための現代的な方法です。これにより無限ループを防ぎます。
+        .task(id: boats.count) {
+            // 現在選択されているIDが有効かチェックし、無効なら先頭のボートを選択し直します
+            if selectedBoatId == nil || !boats.contains(where: { $0.id.uuidString == selectedBoatId }) {
+                selectedBoatId = boats.first?.id.uuidString
             }
-        }
-        .onChange(of: boats) {
-            // ボートが削除された場合などに、選択を更新します
-            validateSelection()
-        }
-    }
-
-    /// 選択中のIDが有効かチェックし、無効なら先頭のボートを選択する関数です
-    private func validateSelection() {
-        // 現在の選択が有効でない場合、記憶されたIDか先頭のボートを再選択します
-        if selection == nil || !boats.contains(where: { $0.id == selection }) {
-            let boatToSelect = boats.first { $0.id.uuidString == selectedBoatId } ?? boats.first
-            selection = boatToSelect?.id
         }
     }
 }
 
-/// MainTabViewはBinding<Boat>を受け取るだけのシンプルな構造です
+/// MainTabViewは、すべてのタブ画面に同じ形式でデータを渡す役割に徹します
 struct MainTabView: View {
     @Binding var currentBoat: Boat
     
     var body: some View {
         TabView {
-            // 全てのタブ画面に、受け取ったBindingをそのまま渡します
+            //【修正点】すべてのタブ画面に、同じ'currentBoat'という名前で、同じBinding($currentBoat)を渡します
+            
             HomeView(currentBoat: $currentBoat)
                 .tabItem { Label("My Rig", systemImage: "ferry.fill") }
             

@@ -4,7 +4,7 @@ import SwiftData
 struct HomeView: View {
     @Query(sort: \Boat.name) private var boats: [Boat]
     
-    // 親Viewから選択中のボート情報を受け取るためのBindingです
+    // 他の画面と統一するため、Binding<Boat>でデータを受け取るように変更します
     @Binding var currentBoat: Boat
     
     @State private var showingAddRigDataView = false
@@ -12,22 +12,18 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                // ボートが複数ある場合のみ、切り替えコントロールを表示します
                 if boats.count > 1 {
-                    //【最終修正点】専用部品の 'SegmentedControl' から、SwiftUI標準の 'Picker' に変更します。
-                    // これが、ボートの切り替えを実現する、ファイル整合性を考慮した唯一の正しい実装です。
                     Picker("ボートを選択", selection: $currentBoat) {
                         ForEach(boats) { boat in
                             Text(boat.name).tag(boat)
                         }
                     }
-                    .pickerStyle(.segmented) // セグメントコントロール形式のUIを指定します
+                    .pickerStyle(.segmented)
                     .padding(.horizontal)
                 }
 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // RigSettingCardViewは、内部で専用のSegmentedControlを使用します
                         RigSettingCardView(currentBoat: currentBoat)
                         
                         VStack(alignment: .leading) {
@@ -57,9 +53,7 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        // 新規ボート追加のロジックは後で実装します
-                    }) {
+                    Button(action: {}) {
                         Image(systemName: "plus")
                     }
                 }
