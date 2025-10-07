@@ -2,80 +2,133 @@ import SwiftUI
 import SwiftData
 
 struct HomeView: View {
-    @Query(sort: \Boat.name) private var boats: [Boat]
-    
-    // 他の画面と統一するため、Binding<Boat>でデータを受け取るように変更します
-    @Binding var currentBoat: Boat
+    // ContentViewから渡されるデータ
+    let boats: [Boat]
+    @Binding var selectedBoatId: String?
+    let currentBoat: Boat?
     
     @State private var showingAddRigDataView = false
-    
+    @State private var isAddingBoat = false // ボート追加画面の表示状態を管理
+
     var body: some View {
         NavigationStack {
-            VStack {
-                if boats.count > 1 {
-                    Picker("ボートを選択", selection: $currentBoat) {
-                        ForEach(boats) { boat in
-                            Text(boat.name).tag(boat)
+            // boats配列が空の場合にWelcomeViewを表示します
+            if boats.isEmpty {
+                WelcomeView(isAddingBoat: $isAddingBoat)
+            } else if let boat = currentBoat {
+                // ボートが存在する場合のメイン画面
+                VStack(spacing: 20) {
+                    if boats.count > 1 {
+                        Picker("ボートを選択", selection: $selectedBoatId) {
+                            ForEach(boats) { boat in
+                                Text(boat.name).tag(boat.id.uuidString as String?)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal)
                     }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                }
 
-                ScrollView {
-                    VStack(spacing: 20) {
-                        RigSettingCardView(currentBoat: currentBoat)
-                        
-                        VStack(alignment: .leading) {
-                            Text("リグ設定の履歴")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .padding(.horizontal)
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            RigSettingCardView(currentBoat: boat)
+                            
+                            VStack(alignment: .leading) {
+                                Text("リグ設定の履歴")
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .padding(.horizontal)
 
-                            if currentBoat.rigDataSets.isEmpty {
-                                Text("データがありません")
-                                    .foregroundColor(.secondary)
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                    .padding()
-                            } else {
-                                ForEach(currentBoat.rigDataSets.sorted(by: { $0.date > $1.date })) { dataSet in
-                                    NavigationLink(destination: RigHistoryDetailView(rigDataSet: dataSet)) {
-                                        RigDataSetRow(dataSet: dataSet)
+                                if boat.rigDataSets.isEmpty {
+                                    Text("データがありません")
+                                        .foregroundColor(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                        .padding()
+                                } else {
+                                    ForEach(boat.rigDataSets.sorted(by: { $0.date > $1.date })) { dataSet in
+                                        NavigationLink(destination: RigHistoryDetailView(rigDataSet: dataSet)) {
+                                            RigDataSetRow(dataSet: dataSet)
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    .padding(.vertical)
-                }
-            }
-            .navigationTitle("My Rig")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {}) {
-                        Image(systemName: "plus")
+                        .padding(.vertical)
                     }
                 }
-            }
-            .safeAreaInset(edge: .bottom) {
-                Button(action: {
-                    showingAddRigDataView = true
-                }) {
-                    Text("リグデータを記録")
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.accentColor)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                        .padding()
+                .navigationTitle("My Rig")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: { isAddingBoat = true }) { // ボート追加ボタン
+                            Image(systemName: "plus")
+                        }
+                    }
                 }
-                .background(.thinMaterial)
-            }
-            .sheet(isPresented: $showingAddRigDataView) {
-                AddRigDataView(boat: currentBoat)
+                .safeAreaInset(edge: .bottom) {
+                    Button(action: {
+                        showingAddRigDataView = true
+                    }) {
+                        Text("リグデータを記録")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                            .padding()
+                    }
+                    .background(.thinMaterial)
+                }
+                .sheet(isPresented: $showingAddRigDataView) {
+                    AddRigDataView(boat: boat)
+                }
             }
         }
+        .sheet(isPresented: $isAddingBoat) {
+            // ボート追加画面をシートで表示します
+            AddBoatView(selectedBoatID: $selectedBoatId)
+        }
+    }
+}
+
+// MARK: - ボート追加用のビュー
+struct AddBoatView: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @State private var boatName: String = ""
+    @Binding var selectedBoatID: String?
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section {
+                    TextField("ボート名", text: $boatName)
+                }
+                
+                Section {
+                    Button("保存") {
+                        addBoat()
+                        dismiss()
+                    }
+                    .disabled(boatName.isEmpty)
+                }
+            }
+            .navigationTitle("新しいボート")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("キャンセル") { dismiss() }
+                }
+            }
+        }
+    }
+    
+    private func addBoat() {
+        let newBoat = Boat(name: boatName)
+        modelContext.insert(newBoat)
+        // データベースへの保存を試みます
+        try? modelContext.save()
+        // 保存後、新しく作成したボートを選択状態にします
+        selectedBoatID = newBoat.id.uuidString
     }
 }

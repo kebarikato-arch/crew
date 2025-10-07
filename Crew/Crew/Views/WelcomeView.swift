@@ -1,11 +1,8 @@
-import SwiftData
 import SwiftUI
-import SwiftData
 
 struct WelcomeView: View {
-    @Environment(\.modelContext) private var modelContext
-    @State private var newBoatName = ""
-    
+    @Binding var isAddingBoat: Bool // HomeViewのisAddingBoatと連携します
+
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
@@ -23,23 +20,16 @@ struct WelcomeView: View {
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
-            TextField("ボート名", text: $newBoatName)
-                .textFieldStyle(.roundedBorder)
-                .padding(.horizontal, 40)
 
-            Button("ボートを登録する", action: addBoat)
-                .buttonStyle(.borderedProminent)
-                .disabled(newBoatName.isEmpty)
+            // このボタンを押すとisAddingBoatがtrueになり、HomeViewがシートを表示します
+            Button("最初のボートを追加する") {
+                isAddingBoat = true
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.top)
 
             Spacer()
         }
         .padding()
-    }
-    
-    private func addBoat() {
-        guard !newBoatName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        let newBoat = Boat(name: newBoatName)
-        modelContext.insert(newBoat)
     }
 }

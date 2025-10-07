@@ -10,6 +10,6 @@ struct CrewApp: App {
             ContentView()
         }
         // MARK: 【修正】トップレベルのモデルのみを指定し、SwiftDataにリレーションの解決を任せる
-        .modelContainer(for: Boat.self)
+        .modelContainer(for: [Boat.self, RigDataSet.self, RigItem.self, CheckListItem.self, RigItemTemplate.self])
     }
 }

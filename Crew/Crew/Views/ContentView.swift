@@ -2,63 +2,71 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    // データベースからボートのリストを取得します
     @Query(sort: \Boat.name) private var boats: [Boat]
     
-    // ユーザーが最後に選択したボートのIDを記憶する、唯一の情報源です
+    // ユーザーが最後に選択したボートのIDを記憶します
     @AppStorage("selectedBoatId") private var selectedBoatId: String?
 
     var body: some View {
-        Group {
-            if boats.isEmpty {
-                // ボートが1件もなければ、ウェルカム画面を表示します
-                WelcomeView()
-            } else {
-                // 表示すべきボートを、記憶されたIDを元に安全に探し出します
-                // 万が一見つからなくても、先頭のボートを選択するためクラッシュしません
-                let boatToShow = boats.first { $0.id.uuidString == selectedBoatId } ?? boats.first!
-                
-                // 子ビュー（HomeViewなど）での変更を親（このView）に伝えるためのBindingを生成します
-                let boatBinding = Binding<Boat>(
-                    get: { boatToShow },
-                    set: { newBoat in
-                        // 子ビューでボートが切り替えられたら、記憶されているIDを更新します
-                        selectedBoatId = newBoat.id.uuidString
-                    }
-                )
-                // MainTabViewに、ここで生成した安全なBindingを渡します
-                MainTabView(currentBoat: boatBinding)
+        // ボートが存在するかどうかにかかわらず、常にMainTabViewを表示します
+        MainTabView(boats: boats, selectedBoatId: $selectedBoatId)
+            .task(id: boats.count) {
+                // 選択されているボートIDが無効、または未選択の場合に先頭のボートを選択し直します
+                if !boats.contains(where: { $0.id.uuidString == selectedBoatId }) {
+                    selectedBoatId = boats.first?.id.uuidString
+                }
             }
-        }
-        // .taskは、Viewが表示された時や、監視対象の値(ここではboats.count)が変化した時に
-        // 安全に処理を実行するための現代的な方法です。これにより無限ループを防ぎます。
-        .task(id: boats.count) {
-            // 現在選択されているIDが有効かチェックし、無効なら先頭のボートを選択し直します
-            if selectedBoatId == nil || !boats.contains(where: { $0.id.uuidString == selectedBoatId }) {
-                selectedBoatId = boats.first?.id.uuidString
-            }
-        }
     }
 }
 
-/// MainTabViewは、すべてのタブ画面に同じ形式でデータを渡す役割に徹します
 struct MainTabView: View {
-    @Binding var currentBoat: Boat
+    let boats: [Boat]
+    @Binding var selectedBoatId: String?
+
+    // 現在選択されているボートを特定します
+    private var currentBoat: Boat? {
+        if let boatId = selectedBoatId,
+           let boat = boats.first(where: { $0.id.uuidString == boatId }) {
+            return boat
+        }
+        return boats.first
+    }
     
+    // 他のビューに渡すためのBinding<Boat>を安全に生成します
+    private var boatBinding: Binding<Boat>? {
+        guard let boat = currentBoat else { return nil }
+        return Binding<Boat>(
+            get: { boat },
+            set: { newBoat in selectedBoatId = newBoat.id.uuidString }
+        )
+    }
+
     var body: some View {
         TabView {
-            //【修正点】すべてのタブ画面に、同じ'currentBoat'という名前で、同じBinding($currentBoat)を渡します
-            
-            HomeView(currentBoat: $currentBoat)
+            // HomeViewにはボートの全リストと選択中のボート情報を渡します
+            HomeView(boats: boats, selectedBoatId: $selectedBoatId, currentBoat: currentBoat)
                 .tabItem { Label("My Rig", systemImage: "ferry.fill") }
-            
-            CheckListView(currentBoat: $currentBoat)
-                .tabItem { Label("Checklist", systemImage: "list.bullet.clipboard.fill") }
-            
-            DataView(currentBoat: $currentBoat)
-                .tabItem { Label("Data", systemImage: "chart.xyaxis.line") }
-            
-            SettingView(currentBoat: $currentBoat)
-                .tabItem { Label("Setting", systemImage: "gear") }
+
+            // 他のタブでは、選択中のボートが存在する場合のみ各ビューを表示します
+            if let binding = boatBinding {
+                CheckListView(currentBoat: binding)
+                    .tabItem { Label("Checklist", systemImage: "list.bullet.clipboard.fill") }
+                
+                DataView(currentBoat: binding)
+                    .tabItem { Label("Data", systemImage: "chart.xyaxis.line") }
+                
+                SettingView(currentBoat: binding)
+                    .tabItem { Label("Setting", systemImage: "gear") }
+            } else {
+                // ボートが一つもない場合のプレースホルダー表示
+                Text("ボートを追加してください")
+                    .tabItem { Label("Checklist", systemImage: "list.bullet.clipboard.fill") }
+                Text("ボートを追加してください")
+                    .tabItem { Label("Data", systemImage: "chart.xyaxis.line") }
+                Text("ボートを追加してください")
+                    .tabItem { Label("Setting", systemImage: "gear") }
+            }
         }
     }
 }
