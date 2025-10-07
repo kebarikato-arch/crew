@@ -59,15 +59,13 @@ struct HomeView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: { isAddingBoat = true }) { // ボート追加ボタン
+                        Button(action: { isAddingBoat = true }) {
                             Image(systemName: "plus")
                         }
                     }
                 }
                 .safeAreaInset(edge: .bottom) {
-                    Button(action: {
-                        showingAddRigDataView = true
-                    }) {
+                    Button(action: { showingAddRigDataView = true }) {
                         Text("リグデータを記録")
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
@@ -85,7 +83,6 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $isAddingBoat) {
-            // ボート追加画面をシートで表示します
             AddBoatView(selectedBoatID: $selectedBoatId)
         }
     }
@@ -124,11 +121,17 @@ struct AddBoatView: View {
     }
     
     private func addBoat() {
+        // 【最重要修正点】Boatモデルで定義された正しい初期化方法を使用します
         let newBoat = Boat(name: boatName)
         modelContext.insert(newBoat)
-        // データベースへの保存を試みます
-        try? modelContext.save()
-        // 保存後、新しく作成したボートを選択状態にします
-        selectedBoatID = newBoat.id.uuidString
+        
+        do {
+            try modelContext.save() // 変更を確実に保存
+            // 保存が成功した場合にのみ、新しいボートを選択状態にします
+            selectedBoatID = newBoat.id.uuidString
+        } catch {
+            // エラーが発生した場合はコンソールに出力します
+            print("ボートの保存に失敗しました: \(error)")
+        }
     }
 }
