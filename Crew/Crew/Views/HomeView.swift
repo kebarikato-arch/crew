@@ -7,6 +7,7 @@ struct HomeView: View {
     
     @State private var showingAddRigDataView = false
     @State private var isAddingBoat = false
+    @State private var showingHistory = false
 
     var body: some View {
         NavigationStack {
@@ -22,20 +23,90 @@ struct HomeView: View {
                 }
 
                 ScrollView {
-                    // (中略：既存のScrollViewの内容は変更なし)
+                    VStack(spacing: 16) {
+                        if currentBoat.rigDataSets.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "chart.line.uptrend.xyaxis")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.secondary)
+                                
+                                Text("リグデータがありません")
+                                    .font(.headline)
+                                    .foregroundColor(.secondary)
+                                
+                                Text("最初のリグデータを記録しましょう")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                Button("リグデータを記録") {
+                                    showingAddRigDataView = true
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .padding(.top, 8)
+                            }
+                            .padding()
+                        } else {
+                            // 最新のリグデータを取得
+                            if let latestDataSet = currentBoat.rigDataSets.sorted(by: { $0.date > $1.date }).first {
+                                VStack(spacing: 12) {
+                                    // リグアイテムをカード形式で表示
+                                    LazyVGrid(columns: [
+                                        GridItem(.flexible()),
+                                        GridItem(.flexible())
+                                    ], spacing: 12) {
+                                        ForEach(latestDataSet.rigItems, id: \.id) { item in
+                                            RigItemCard(item: item)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding()
                 }
             }
             .navigationTitle("My Rig")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if !currentBoat.rigDataSets.isEmpty {
+                        Button("履歴") {
+                            showingHistory = true
+                        }
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { isAddingBoat = true }) { Image(systemName: "plus") }
+                    Menu {
+                        Button("リグデータを記録") {
+                            showingAddRigDataView = true
+                        }
+                        Button("ボートを追加") {
+                            isAddingBoat = true
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
             .sheet(isPresented: $isAddingBoat) {
                 AddBoatView()
             }
-            // (中略：safeAreaInsetとそれに続くsheetも変更なし)
+            .sheet(isPresented: $showingAddRigDataView) {
+                AddRigDataView(boat: currentBoat)
+            }
+            .sheet(isPresented: $showingHistory) {
+                RigHistoryView(currentBoat: $currentBoat)
+            }
+            .safeAreaInset(edge: .bottom) {
+                if !currentBoat.rigDataSets.isEmpty {
+                    Button("リグデータを記録") {
+                        showingAddRigDataView = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding()
+                }
+            }
         }
     }
 }

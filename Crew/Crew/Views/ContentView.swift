@@ -3,10 +3,12 @@ import SwiftData
 
 struct ContentView: View {
     @Query(sort: \Boat.name) private var boats: [Boat]
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         if boats.isEmpty {
             WelcomeView()
+                .environment(\.modelContext, modelContext)
         } else {
             MainAppView(boats: boats)
         }

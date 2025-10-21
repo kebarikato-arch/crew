@@ -5,7 +5,7 @@ import SwiftData
 // MARK: - Boat
 @Model
 final class Boat {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var name: String
     
     // @Relationshipを持つプロパティは、SwiftDataが管理するため、手動で初期化する必要はありません。
@@ -31,7 +31,7 @@ final class Boat {
 // MARK: - RigDataSet
 @Model
 final class RigDataSet {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var date: Date
     var memo: String
     @Relationship(deleteRule: .cascade, inverse: \RigItem.dataSet)
@@ -49,7 +49,7 @@ final class RigDataSet {
 // MARK: - RigItem
 @Model
 final class RigItem {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var name: String
     var value: Double
     var stringValue: String?
@@ -86,7 +86,7 @@ enum RigItemStatus: String, Codable {
 // MARK: - CheckListItem
 @Model
 final class CheckListItem {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var task: String
     var isCompleted: Bool
     var category: String
@@ -104,7 +104,7 @@ final class CheckListItem {
 // MARK: - RigItemTemplate
 @Model
 final class RigItemTemplate {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var name: String
     var unit: String
     var category: String

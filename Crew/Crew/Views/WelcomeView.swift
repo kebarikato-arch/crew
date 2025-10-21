@@ -42,11 +42,40 @@ struct WelcomeView: View {
         let newBoat = Boat(name: newBoatName)
         modelContext.insert(newBoat)
         
+        // デフォルトのリグテンプレートを追加
+        addDefaultRigTemplates(to: newBoat)
+        
         // 念のためdo-catchでエラーを捕捉します
         do {
             try modelContext.save()
+            DispatchQueue.main.async { newBoatName = "" }
         } catch {
             print("ボートの保存に失敗しました: \(error.localizedDescription)")
+        }
+    }
+    
+    private func addDefaultRigTemplates(to boat: Boat) {
+        let defaultTemplates = [
+            // クラッチ
+            ("スパン", "cm", "クラッチ"),
+            ("前傾", "°", "クラッチ"),
+            ("後傾", "°", "クラッチ"),
+            ("ブッシュ", "選択", "クラッチ"),
+            
+            // ストレッチャー
+            ("アングル", "°", "ストレッチャー"),
+            ("デプス", "cm", "ストレッチャー"),
+            ("ピンヒール", "cm", "ストレッチャー"),
+            ("ワークスルー", "cm", "ストレッチャー"),
+            
+            // オール
+            ("全長", "cm", "オール"),
+            ("インボード", "cm", "オール")
+        ]
+        
+        for (name, unit, category) in defaultTemplates {
+            let template = RigItemTemplate(name: name, unit: unit, category: category, boat: boat)
+            boat.rigItemTemplates.append(template)
         }
     }
 }
