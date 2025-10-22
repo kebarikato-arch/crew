@@ -27,10 +27,21 @@ struct AddRigDataView: View {
                         VStack(alignment: .leading) {
                             Text(item.name)
                                 .font(.headline)
-                            HStack {
-                                TextField("数値", value: $item.value, format: .number)
-                                    .keyboardType(.decimalPad)
-                                Text(item.unit)
+                            
+                            if item.name == "ブッシュ" {
+                                Picker("選択", selection: $item.stringValue) {
+                                    Text("1・7").tag("1・7")
+                                    Text("2・6").tag("2・6")
+                                    Text("3・5").tag("3・5")
+                                    Text("4・4").tag("4・4")
+                                }
+                                .pickerStyle(.segmented)
+                            } else {
+                                HStack {
+                                    TextField("数値", value: $item.value, format: .number)
+                                        .keyboardType(.decimalPad)
+                                    Text(item.unit)
+                                }
                             }
                         }
                     }
