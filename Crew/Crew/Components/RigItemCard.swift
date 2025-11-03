@@ -27,20 +27,10 @@ struct RigItemCard: View {
                 }
             }
             
-            // ステータスインジケーター
-            HStack {
-                Circle()
-                    .fill(item.statusColor)
-                    .frame(width: 8, height: 8)
-                
-                Text(item.status.rawValue)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                Spacer()
-            }
+            // 旧ステータス表示を撤去（満足度はデータセット単位で表示）
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)

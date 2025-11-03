@@ -8,6 +8,7 @@ struct HomeView: View {
     @State private var showingAddRigDataView = false
     @State private var isAddingBoat = false
     @State private var showingHistory = false
+    @State private var showingFabOptions = false
 
     var body: some View {
         NavigationStack {
@@ -101,22 +102,7 @@ struct HomeView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if !currentBoat.rigDataSets.isEmpty {
-                        Button("履歴") {
-                            showingHistory = true
-                        }
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button("リグデータを記録") {
-                            showingAddRigDataView = true
-                        }
-                        Button("ボートを追加") {
-                            isAddingBoat = true
-                        }
-                    } label: {
-                        Image(systemName: "plus")
+                        Button("履歴") { showingHistory = true }
                     }
                 }
             }
@@ -129,13 +115,78 @@ struct HomeView: View {
             .sheet(isPresented: $showingHistory) {
                 RigHistoryView(currentBoat: $currentBoat)
             }
-            .safeAreaInset(edge: .bottom) {
-                if !currentBoat.rigDataSets.isEmpty {
-                    Button("リグデータを記録") {
-                        showingAddRigDataView = true
+            .overlay(alignment: .bottom) {
+                Button(action: { showingFabOptions = true }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 56, height: 56)
+                        .background(
+                            Circle()
+                                .fill(Color.accentColor)
+                        )
+                        .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 4)
+                }
+                .padding(.bottom, 24)
+            }
+            // Compact options popup at bottom (no full-screen dim)
+            .overlay(alignment: .bottom) {
+                if showingFabOptions {
+                    ZStack(alignment: .bottom) {
+                        // Invisible hit-area to dismiss when tapping outside
+                        Color.clear
+                            .ignoresSafeArea()
+                            .contentShape(Rectangle())
+                            .onTapGesture { withAnimation(.spring()) { showingFabOptions = false } }
+
+                        VStack(spacing: 8) {
+                        Button(action: {
+                            showingFabOptions = false
+                            showingAddRigDataView = true
+                        }) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "square.and.pencil")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.accentColor)
+                                Text("リグデータを記録")
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(.ultraThinMaterial)
+                            )
+                        }
+
+                        Button(action: {
+                            showingFabOptions = false
+                            isAddingBoat = true
+                        }) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "person.badge.plus")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.accentColor)
+                                Text("ボートを追加")
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(.ultraThinMaterial)
+                            )
+                        }
+                        }
+                        .padding(.bottom, 100)
+                        .padding(.horizontal, 24)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showingFabOptions)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .padding()
                 }
             }
         }

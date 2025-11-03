@@ -54,8 +54,8 @@ struct RigHistoryDetailView: View {
     private func reproduceSetting() {
         guard let boat = rigDataSet.boat else { return }
         
-        // 新しいデータセットを作成
-        let newDataSet = RigDataSet(date: Date(), memo: "", boat: boat)
+        // 新しいデータセットを作成（メモも復元）
+        let newDataSet = RigDataSet(date: Date(), memo: rigDataSet.memo, boat: boat)
         
         // 選択された履歴のリグアイテムの値をコピー
         newDataSet.rigItems = rigDataSet.rigItems.map {

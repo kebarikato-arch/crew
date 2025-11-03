@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct RigHistoryView: View {
+    @Environment(\.modelContext) private var context
     @Binding var currentBoat: Boat
     @State private var selectedDataSet: RigDataSet?
     
@@ -34,13 +35,22 @@ struct RigHistoryView: View {
                             selectedDataSet = dataSet
                         }
                     }
+                    .onDelete(perform: deleteDataSets)
                 }
             }
         }
         .navigationTitle("履歴")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar { EditButton() }
         .sheet(item: $selectedDataSet) { dataSet in
             RigHistoryDetailView(rigDataSet: dataSet)
+        }
+    }
+
+    private func deleteDataSets(at offsets: IndexSet) {
+        let targets = offsets.map { sortedDataSets[$0] }
+        for target in targets {
+            context.delete(target)
         }
     }
 }
