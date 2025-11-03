@@ -37,7 +37,7 @@ struct MainAppView: View {
     var body: some View {
         TabView {
             HomeView(currentBoat: boatBinding)
-                .tabItem { Label("My Rig", systemImage: "ferry.fill") }
+                .tabItem { Label("My Rig", systemImage: "house") }
 
             CheckListView(currentBoat: boatBinding)
                 .tabItem { Label("Checklist", systemImage: "list.bullet.clipboard.fill") }

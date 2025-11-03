@@ -49,6 +49,37 @@ struct HomeView: View {
                             // 最新のリグデータを取得
                             if let latestDataSet = currentBoat.rigDataSets.sorted(by: { $0.date > $1.date }).first {
                                 VStack(spacing: 12) {
+                                    // メモを表示
+                                    if !latestDataSet.memo.isEmpty {
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            HStack {
+                                                Image(systemName: "note.text")
+                                                    .foregroundColor(.blue)
+                                                    .font(.title3)
+                                                Text("メモ")
+                                                    .font(.headline)
+                                                    .fontWeight(.semibold)
+                                                Spacer()
+                                            }
+                                            
+                                            Text(latestDataSet.memo)
+                                                .font(.body)
+                                                .foregroundColor(.primary)
+                                                .multilineTextAlignment(.leading)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                        .padding(16)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color(.systemBackground))
+                                                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+                                        )
+                                    }
+                                    
                                     // リグアイテムをカード形式で表示
                                     LazyVGrid(columns: [
                                         GridItem(.flexible()),
