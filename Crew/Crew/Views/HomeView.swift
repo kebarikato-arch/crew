@@ -81,13 +81,36 @@ struct HomeView: View {
                                         )
                                     }
                                     
-                                    // リグアイテムをカード形式で表示
-                                    LazyVGrid(columns: [
-                                        GridItem(.flexible()),
-                                        GridItem(.flexible())
-                                    ], spacing: 12) {
-                                        ForEach(latestDataSet.rigItems, id: \.id) { item in
-                                            RigItemCard(item: item)
+                                    // リグアイテムをカテゴリごとに表示
+                                    // 英字のみのカテゴリは「その他」にまとめる（ボート競技向け）
+                                    let itemsByCategory = Dictionary(grouping: latestDataSet.rigItems) { (item: RigItem) in
+                                        let raw = item.template?.category ?? "その他"
+                                        let isAsciiLetters = raw.range(of: "^[A-Za-z]+$", options: .regularExpression) != nil
+                                        return isAsciiLetters ? "その他" : raw
+                                    }
+                                    // 優先表示順（日本語カテゴリのみ）
+                                    let preferredOrder = ["クラッチ", "ストレッチャー", "オール", "その他"]
+                                    let sortedCategories = itemsByCategory.keys.sorted { a, b in
+                                        let ia = preferredOrder.firstIndex(of: a) ?? Int.max
+                                        let ib = preferredOrder.firstIndex(of: b) ?? Int.max
+                                        return ia == ib ? a < b : ia < ib
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 16) {
+                                        ForEach(sortedCategories, id: \.self) { category in
+                                            VStack(alignment: .leading, spacing: 8) {
+                                                Text(category)
+                                                    .font(.headline)
+                                                    .foregroundColor(.primary)
+                                                LazyVGrid(columns: [
+                                                    GridItem(.flexible()),
+                                                    GridItem(.flexible())
+                                                ], spacing: 12) {
+                                                    ForEach(itemsByCategory[category] ?? [], id: \.id) { item in
+                                                        RigItemCard(item: item)
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }

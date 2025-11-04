@@ -7,8 +7,8 @@ struct EditRigTemplatesView: View {
 
     @State private var newTemplateName = ""
     @State private var newTemplateUnit = ""
-    @State private var selectedCategory = "Mast"
-    let categories = ["Mast", "Boom", "Hull", "Other"]
+    @State private var selectedCategory = "クラッチ"
+    let categories = ["クラッチ", "ストレッチャー", "オール", "その他"]
 
     var body: some View {
         Form {
