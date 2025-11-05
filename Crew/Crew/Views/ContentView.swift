@@ -4,13 +4,49 @@ import SwiftData
 struct ContentView: View {
     @Query(sort: \Boat.name) private var boats: [Boat]
     @Environment(\.modelContext) private var modelContext
+    @AppStorage("hasMigratedNewTemplates") private var hasMigratedNewTemplates = false
 
     var body: some View {
-        if boats.isEmpty {
-            WelcomeView()
-                .environment(\.modelContext, modelContext)
-        } else {
-            MainAppView(boats: boats)
+        Group {
+            if boats.isEmpty {
+                WelcomeView()
+                    .environment(\.modelContext, modelContext)
+            } else {
+                MainAppView(boats: boats)
+            }
+        }
+        .task {
+            if !hasMigratedNewTemplates && !boats.isEmpty {
+                migrateNewTemplates()
+                hasMigratedNewTemplates = true
+            }
+        }
+    }
+    
+    private func migrateNewTemplates() {
+        let newTemplates = [
+            ("ワークハイトB", "cm", "クラッチ"),
+            ("ワークハイトS", "cm", "クラッチ")
+        ]
+        
+        for boat in boats {
+            for (name, unit, category) in newTemplates {
+                // 既に存在する場合はスキップ
+                if boat.rigItemTemplates.contains(where: { $0.name == name && $0.category == category }) {
+                    continue
+                }
+                
+                // 新しいテンプレートを追加
+                let template = RigItemTemplate(name: name, unit: unit, category: category, boat: boat)
+                boat.rigItemTemplates.append(template)
+            }
+        }
+        
+        do {
+            try modelContext.save()
+            print("Migration: Added ワークハイトB and ワークハイトS to all boats")
+        } catch {
+            print("Migration failed: \(error)")
         }
     }
 }

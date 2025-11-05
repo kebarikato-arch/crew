@@ -102,11 +102,22 @@ struct HomeView: View {
                                                 Text(category)
                                                     .font(.headline)
                                                     .foregroundColor(.primary)
-                                                LazyVGrid(columns: [
+                                            LazyVGrid(columns: [
                                                     GridItem(.flexible()),
                                                     GridItem(.flexible())
                                                 ], spacing: 12) {
-                                                    ForEach(itemsByCategory[category] ?? [], id: \.id) { item in
+                                                    // クラッチのみ指定順で並べ替え
+                                                    let clutchOrder = ["ワークハイトB", "ワークハイトS", "スパン", "ブッシュ", "前傾", "後傾"]
+                                                    let clutchIndex: [String: Int] = Dictionary(uniqueKeysWithValues: clutchOrder.enumerated().map { ($1, $0) })
+                                                    let items = (itemsByCategory[category] ?? []).sorted { a, b in
+                                                        if category == "クラッチ" {
+                                                            let ia = clutchIndex[a.name] ?? Int.max
+                                                            let ib = clutchIndex[b.name] ?? Int.max
+                                                            return ia == ib ? a.name < b.name : ia < ib
+                                                        }
+                                                        return a.name < b.name
+                                                    }
+                                                    ForEach(items, id: \.id) { item in
                                                         RigItemCard(item: item)
                                                     }
                                                 }
