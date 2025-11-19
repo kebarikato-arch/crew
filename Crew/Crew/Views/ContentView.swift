@@ -5,6 +5,7 @@ struct ContentView: View {
     @Query(sort: \Boat.name) private var boats: [Boat]
     @Environment(\.modelContext) private var modelContext
     @AppStorage("hasMigratedNewTemplates") private var hasMigratedNewTemplates = false
+    @AppStorage("hasMigratedChecklist") private var hasMigratedChecklist = false
 
     var body: some View {
         Group {
@@ -19,6 +20,10 @@ struct ContentView: View {
             if !hasMigratedNewTemplates && !boats.isEmpty {
                 migrateNewTemplates()
                 hasMigratedNewTemplates = true
+            }
+            if !hasMigratedChecklist && !boats.isEmpty {
+                migrateChecklistItems()
+                hasMigratedChecklist = true
             }
         }
     }
@@ -47,6 +52,41 @@ struct ContentView: View {
             print("Migration: Added ワークハイトB and ワークハイトS to all boats")
         } catch {
             print("Migration failed: \(error)")
+        }
+    }
+    
+    private func migrateChecklistItems() {
+        let defaultItems = [
+            // レース前チェック
+            ("オールの確認", "レース前チェック"),
+            ("リグの確認", "レース前チェック"),
+            ("ボートの点検", "レース前チェック"),
+            
+            // 持ち物
+            ("ユニフォーム", "持ち物"),
+            ("シューズ", "持ち物"),
+            ("水筒", "持ち物"),
+            ("タオル", "持ち物"),
+            ("着替え", "持ち物")
+        ]
+        
+        for boat in boats {
+            // 既存のチェックリスト項目がある場合はスキップ（ユーザーが既にカスタマイズしている可能性がある）
+            if !boat.checklist.isEmpty {
+                continue
+            }
+            
+            for (task, category) in defaultItems {
+                let item = CheckListItem(task: task, isCompleted: false, category: category, boat: boat)
+                boat.checklist.append(item)
+            }
+        }
+        
+        do {
+            try modelContext.save()
+            print("Migration: Added default checklist items to boats without existing items")
+        } catch {
+            print("Checklist migration failed: \(error)")
         }
     }
 }
@@ -91,3 +131,4 @@ struct MainAppView: View {
         }
     }
 }
+

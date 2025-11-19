@@ -15,25 +15,25 @@ struct CheckListView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section(header: Text("セーリング前")) {
-                    ForEach(filteredItems(for: "セーリング前")) { item in
+                Section(header: Text("レース前チェック")) {
+                    ForEach(filteredItems(for: "レース前チェック")) { item in
                         CheckListItemRow(item: item)
                     }
                     .onDelete { indices in
-                        deleteItems(at: indices, in: "セーリング前")
+                        deleteItems(at: indices, in: "レース前チェック")
                     }
                 }
                 
-                Section(header: Text("セーリング後")) {
-                    ForEach(filteredItems(for: "セーリング後")) { item in
+                Section(header: Text("持ち物")) {
+                    ForEach(filteredItems(for: "持ち物")) { item in
                         CheckListItemRow(item: item)
                     }
                     .onDelete { indices in
-                        deleteItems(at: indices, in: "セーリング後")
+                        deleteItems(at: indices, in: "持ち物")
                     }
                 }
             }
-            .navigationTitle("Checklist")
+            .navigationTitle("チェックリスト")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
@@ -65,11 +65,24 @@ struct CheckListItemRow: View {
     @Bindable var item: CheckListItem
 
     var body: some View {
-        Toggle(isOn: $item.isCompleted) {
-            Text(item.task)
-                .strikethrough(item.isCompleted, color: .secondary)
-                .foregroundColor(item.isCompleted ? .secondary : .primary)
+        Button(action: {
+            item.isCompleted.toggle()
+        }) {
+            HStack(spacing: 12) {
+                // Checkbox
+                Image(systemName: item.isCompleted ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 22))
+                    .foregroundColor(item.isCompleted ? .accentColor : .secondary)
+                
+                Text(item.task)
+                    .foregroundColor(.primary)
+                    .strikethrough(item.isCompleted, color: .secondary)
+                    .opacity(item.isCompleted ? 0.6 : 1.0)
+                
+                Spacer()
+            }
         }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
@@ -79,15 +92,15 @@ struct AddEditChecklistItemView: View {
     @Binding var itemToEdit: CheckListItem?
     
     @State private var task: String = ""
-    @State private var category: String = "セーリング前"
+    @State private var category: String = "レース前チェック"
     
     var body: some View {
         NavigationStack {
             Form {
-                TextField("タスク", text: $task)
+                TextField("項目名", text: $task)
                 Picker("カテゴリ", selection: $category) {
-                    Text("セーリング前").tag("セーリング前")
-                    Text("セーリング後").tag("セーリング後")
+                    Text("レース前チェック").tag("レース前チェック")
+                    Text("持ち物").tag("持ち物")
                 }
                 .pickerStyle(SegmentedPickerStyle())
             }

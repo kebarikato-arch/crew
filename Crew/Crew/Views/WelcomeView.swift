@@ -45,6 +45,9 @@ struct WelcomeView: View {
         // デフォルトのリグテンプレートを追加
         addDefaultRigTemplates(to: newBoat)
         
+        // デフォルトのチェックリスト項目を追加
+        addDefaultChecklistItems(to: newBoat)
+        
         // 念のためdo-catchでエラーを捕捉します
         do {
             try modelContext.save()
@@ -78,6 +81,27 @@ struct WelcomeView: View {
         for (name, unit, category) in defaultTemplates {
             let template = RigItemTemplate(name: name, unit: unit, category: category, boat: boat)
             boat.rigItemTemplates.append(template)
+        }
+    }
+    
+    private func addDefaultChecklistItems(to boat: Boat) {
+        let defaultItems = [
+            // レース前チェック
+            ("オールの確認", "レース前チェック"),
+            ("リグの確認", "レース前チェック"),
+            ("ボートの点検", "レース前チェック"),
+            
+            // 持ち物
+            ("ユニフォーム", "持ち物"),
+            ("シューズ", "持ち物"),
+            ("水筒", "持ち物"),
+            ("タオル", "持ち物"),
+            ("着替え", "持ち物")
+        ]
+        
+        for (task, category) in defaultItems {
+            let item = CheckListItem(task: task, isCompleted: false, category: category, boat: boat)
+            boat.checklist.append(item)
         }
     }
 }

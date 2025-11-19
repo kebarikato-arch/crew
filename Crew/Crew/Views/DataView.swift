@@ -23,53 +23,151 @@ struct DataView: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
-                if availableTemplates.isEmpty {
-                    Text("分析できるデータがありません")
+            if availableTemplates.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 60))
                         .foregroundColor(.secondary)
-                } else {
-                    Picker("リグアイテム", selection: $selectedItemTemplate) {
-                        ForEach(availableTemplates) { template in
-                            Text(template.name).tag(template as RigItemTemplate?)
-                        }
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .padding(.horizontal)
-
-                    if let template = selectedItemTemplate, !chartData.isEmpty {
-                        VStack {
-                            Chart(chartData, id: \.date) { dataPoint in
-                                LineMark(
-                                    x: .value("Date", dataPoint.date),
-                                    y: .value("Value", dataPoint.value)
-                                )
-                                PointMark(
-                                    x: .value("Date", dataPoint.date),
-                                    y: .value("Value", dataPoint.value)
-                                )
-                            }
-                            .chartYAxisLabel(template.unit)
-                            .padding()
-
-                            StatisticsCardView(data: chartData.map { $0.value }, unit: template.unit)
-
-                            Spacer()
-                        }
-                    } else {
-                        Spacer()
-                        Text("表示するデータを選択してください")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
+                    
+                    Text("分析できるデータがありません")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                    
+                    Text("リグデータを記録すると、ここで分析できます")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
-            }
-            .navigationTitle("データ分析")
-            .onAppear {
-                if selectedItemTemplate == nil {
-                    selectedItemTemplate = availableTemplates.first
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Item selection section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("分析する項目を選択")
+                                .font(.headline)
+                                .padding(.horizontal)
+                            
+                            // Group templates by category (ASCII-only categories go to "その他")
+                            let templatesByCategory = Dictionary(grouping: availableTemplates) { template in
+                                let raw = template.category
+                                let isAsciiLetters = raw.range(of: "^[A-Za-z]+$", options: .regularExpression) != nil
+                                return isAsciiLetters ? "その他" : raw
+                            }
+                            let preferredOrder = ["クラッチ", "ストレッチャー", "オール", "その他"]
+                            let sortedCategories = templatesByCategory.keys.sorted { a, b in
+                                let ia = preferredOrder.firstIndex(of: a) ?? Int.max
+                                let ib = preferredOrder.firstIndex(of: b) ?? Int.max
+                                return ia == ib ? a < b : ia < ib
+                            }
+                            
+                            ForEach(sortedCategories, id: \.self) { category in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(category)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.secondary)
+                                        .padding(.horizontal)
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 10) {
+                                            ForEach(templatesByCategory[category] ?? [], id: \.id) { template in
+                                                ItemSelectionButton(
+                                                    template: template,
+                                                    isSelected: selectedItemTemplate?.id == template.id
+                                                ) {
+                                                    selectedItemTemplate = template
+                                                }
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.vertical)
+                        
+                        // Chart section
+                        if let template = selectedItemTemplate, !chartData.isEmpty {
+                            VStack(spacing: 16) {
+                                // Chart
+                                Chart(chartData, id: \.date) { dataPoint in
+                                    LineMark(
+                                        x: .value("Date", dataPoint.date),
+                                        y: .value("Value", dataPoint.value)
+                                    )
+                                    .foregroundStyle(.blue)
+                                    PointMark(
+                                        x: .value("Date", dataPoint.date),
+                                        y: .value("Value", dataPoint.value)
+                                    )
+                                    .foregroundStyle(.blue)
+                                }
+                                .frame(height: 250)
+                                .chartYAxisLabel(template.unit)
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(.systemBackground))
+                                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+                                )
+                                .padding(.horizontal)
+                                
+                                // Statistics
+                                StatisticsCardView(data: chartData.map { $0.value }, unit: template.unit)
+                            }
+                        } else if selectedItemTemplate != nil {
+                            VStack(spacing: 12) {
+                                Image(systemName: "chart.bar")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.secondary)
+                                Text("データがありません")
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                        }
+                    }
+                    .padding(.vertical)
+                }
+                .navigationTitle("データ分析")
+                .onAppear {
+                    if selectedItemTemplate == nil {
+                        selectedItemTemplate = availableTemplates.first
+                    }
                 }
             }
         }
+    }
+}
+
+// Item selection button component
+struct ItemSelectionButton: View {
+    let template: RigItemTemplate
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(template.name)
+                .font(.subheadline)
+                .fontWeight(isSelected ? .semibold : .regular)
+                .foregroundColor(isSelected ? .white : .primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? Color.accentColor : Color(.systemGray6))
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
+                )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

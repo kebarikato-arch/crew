@@ -96,13 +96,31 @@ struct HomeView: View {
                                         return ia == ib ? a < b : ia < ib
                                     }
 
-                                    VStack(alignment: .leading, spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 20) {
                                         ForEach(sortedCategories, id: \.self) { category in
-                                            VStack(alignment: .leading, spacing: 8) {
-                                                Text(category)
-                                                    .font(.headline)
-                                                    .foregroundColor(.primary)
-                                            LazyVGrid(columns: [
+                                            VStack(alignment: .leading, spacing: 12) {
+                                                // Enhanced category header
+                                                VStack(alignment: .leading, spacing: 8) {
+                                                    HStack(spacing: 10) {
+                                                        // Category icon
+                                                        Image(systemName: categoryIcon(for: category))
+                                                            .font(.system(size: 18, weight: .semibold))
+                                                            .foregroundColor(categoryColor(for: category))
+                                                            .frame(width: 24, height: 24)
+                                                        
+                                                        Text(category)
+                                                            .font(.system(size: 18, weight: .bold))
+                                                            .foregroundColor(.primary)
+                                                    }
+                                                    
+                                                    // Divider line
+                                                    Rectangle()
+                                                        .fill(categoryColor(for: category).opacity(0.3))
+                                                        .frame(height: 2)
+                                                        .cornerRadius(1)
+                                                }
+                                                
+                                                LazyVGrid(columns: [
                                                     GridItem(.flexible()),
                                                     GridItem(.flexible())
                                                 ], spacing: 12) {
@@ -223,6 +241,33 @@ struct HomeView: View {
                     }
                 }
             }
+        }
+    }
+    
+    // Helper functions for category styling
+    private func categoryIcon(for category: String) -> String {
+        switch category {
+        case "クラッチ":
+            return "hand.raised.fill"
+        case "ストレッチャー":
+            return "figure.seated.side"
+        case "オール":
+            return "oar.2.crossed"
+        default:
+            return "square.grid.2x2"
+        }
+    }
+    
+    private func categoryColor(for category: String) -> Color {
+        switch category {
+        case "クラッチ":
+            return .blue
+        case "ストレッチャー":
+            return .orange
+        case "オール":
+            return .green
+        default:
+            return .gray
         }
     }
 }
