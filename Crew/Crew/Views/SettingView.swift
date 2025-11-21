@@ -19,6 +19,9 @@ struct SettingView: View {
                     NavigationLink("リグアイテムのテンプレートを編集") {
                         EditRigTemplatesView(boat: currentBoat)
                     }
+                    NavigationLink("ワークアウトテンプレートを編集") {
+                        EditWorkoutTemplatesView(boat: currentBoat)
+                    }
                 }
 
                 Section("登録済みのボート") {

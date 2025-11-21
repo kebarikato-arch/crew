@@ -48,6 +48,9 @@ struct WelcomeView: View {
         // デフォルトのチェックリスト項目を追加
         addDefaultChecklistItems(to: newBoat)
         
+        // デフォルトのワークアウトテンプレートを追加
+        addDefaultWorkoutTemplates(to: newBoat)
+        
         // 念のためdo-catchでエラーを捕捉します
         do {
             try modelContext.save()
@@ -102,6 +105,87 @@ struct WelcomeView: View {
         for (task, category) in defaultItems {
             let item = CheckListItem(task: task, isCompleted: false, category: category, boat: boat)
             boat.checklist.append(item)
+        }
+    }
+    
+    private func addDefaultWorkoutTemplates(to boat: Boat) {
+        // エルゴ用デフォルトワークアウト
+        let ergoDefaults = [
+            ("500mタイムトライアル", [
+                ("タイム", "sec", 0),
+                ("ストロークレート", "spm", 1),
+                ("平均パワー", "W", 2)
+            ]),
+            ("2000mテスト", [
+                ("タイム", "min:sec", 0),
+                ("平均ストロークレート", "spm", 1),
+                ("平均パワー", "W", 2),
+                ("最大パワー", "W", 3)
+            ]),
+            ("インターバルトレーニング", [
+                ("セット数", "回", 0),
+                ("インターバル時間", "sec", 1),
+                ("レスト時間", "sec", 2),
+                ("平均パワー", "W", 3)
+            ])
+        ]
+        
+        // ボート用デフォルトワークアウト
+        let boatDefaults = [
+            ("スプリント練習", [
+                ("距離", "m", 0),
+                ("タイム", "sec", 1),
+                ("ストロークレート", "spm", 2)
+            ]),
+            ("ロングディスタンス", [
+                ("距離", "km", 0),
+                ("タイム", "min", 1),
+                ("平均ストロークレート", "spm", 2)
+            ]),
+            ("テクニック練習", [
+                ("練習時間", "min", 0),
+                ("フォーカス", "text", 1)
+            ])
+        ]
+        
+        // エルゴワークアウトを作成
+        for (workoutName, metrics) in ergoDefaults {
+            let template = WorkoutTemplate(
+                name: workoutName,
+                sessionType: .ergo,
+                boat: boat,
+                isDefault: true
+            )
+            for (metricName, unit, order) in metrics {
+                let metricTemplate = WorkoutMetricTemplate(
+                    name: metricName,
+                    unit: unit,
+                    order: order,
+                    workoutTemplate: template
+                )
+                template.metricTemplates.append(metricTemplate)
+            }
+            boat.workoutTemplates.append(template)
+        }
+        
+        // ボートワークアウトを作成
+        for (workoutName, metrics) in boatDefaults {
+            let template = WorkoutTemplate(
+                name: workoutName,
+                sessionType: .boat,
+                boat: boat,
+                isDefault: true
+            )
+            for (metricName, unit, order) in metrics {
+                let metricTemplate = WorkoutMetricTemplate(
+                    name: metricName,
+                    unit: unit,
+                    order: order,
+                    workoutTemplate: template
+                )
+                template.metricTemplates.append(metricTemplate)
+            }
+            boat.workoutTemplates.append(template)
         }
     }
 }

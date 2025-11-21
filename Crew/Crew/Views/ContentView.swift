@@ -121,6 +121,9 @@ struct MainAppView: View {
             DataView(currentBoat: boatBinding)
                 .tabItem { Label("Data", systemImage: "chart.xyaxis.line") }
             
+            TrainingView(currentBoat: boatBinding)
+                .tabItem { Label("Training", systemImage: "figure.rowing") }
+            
             SettingView(currentBoat: boatBinding)
                 .tabItem { Label("Setting", systemImage: "gear") }
         }

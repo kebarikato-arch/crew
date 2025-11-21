@@ -18,6 +18,12 @@ final class Boat {
     @Relationship(deleteRule: .cascade, inverse: \RigItemTemplate.boat)
     var rigItemTemplates: [RigItemTemplate] = []
     
+    @Relationship(deleteRule: .cascade, inverse: \TrainingSession.boat)
+    var trainingSessions: [TrainingSession] = []
+    
+    @Relationship(deleteRule: .cascade, inverse: \WorkoutTemplate.boat)
+    var workoutTemplates: [WorkoutTemplate] = []
+    
     // 【最重要修正点】
     // このinit(name:)メソッドが、アプリから新しいボートを作成する際に呼ばれます。
     // @Relationshipを持つ配列の初期化を削除し、nameとidの設定のみを行います。
@@ -116,5 +122,91 @@ final class RigItemTemplate {
         self.unit = unit
         self.category = category
         self.boat = boat
+    }
+}
+
+// MARK: - SessionType
+enum SessionType: String, Codable {
+    case ergo = "エルゴ"
+    case boat = "ボート"
+}
+
+// MARK: - WorkoutTemplate
+@Model
+final class WorkoutTemplate {
+    var id: UUID
+    var name: String
+    var sessionType: SessionType
+    var boat: Boat?
+    var isDefault: Bool
+    @Relationship(deleteRule: .cascade, inverse: \WorkoutMetricTemplate.workoutTemplate)
+    var metricTemplates: [WorkoutMetricTemplate] = []
+    
+    init(name: String, sessionType: SessionType, boat: Boat?, isDefault: Bool = false) {
+        self.id = UUID()
+        self.name = name
+        self.sessionType = sessionType
+        self.boat = boat
+        self.isDefault = isDefault
+    }
+}
+
+// MARK: - WorkoutMetricTemplate
+@Model
+final class WorkoutMetricTemplate {
+    var id: UUID
+    var name: String
+    var unit: String
+    var order: Int
+    var workoutTemplate: WorkoutTemplate?
+    
+    init(name: String, unit: String, order: Int = 0, workoutTemplate: WorkoutTemplate?) {
+        self.id = UUID()
+        self.name = name
+        self.unit = unit
+        self.order = order
+        self.workoutTemplate = workoutTemplate
+    }
+}
+
+// MARK: - TrainingSession
+@Model
+final class TrainingSession {
+    var id: UUID
+    var date: Date
+    var sessionType: SessionType
+    var memo: String
+    var isShared: Bool
+    @Relationship(deleteRule: .cascade, inverse: \TrainingMetric.session)
+    var metrics: [TrainingMetric] = []
+    var boat: Boat?
+    var workoutTemplate: WorkoutTemplate?
+    
+    init(date: Date, sessionType: SessionType, memo: String = "", isShared: Bool = false, boat: Boat?, workoutTemplate: WorkoutTemplate? = nil) {
+        self.id = UUID()
+        self.date = date
+        self.sessionType = sessionType
+        self.memo = memo
+        self.isShared = isShared
+        self.boat = boat
+        self.workoutTemplate = workoutTemplate
+    }
+}
+
+// MARK: - TrainingMetric
+@Model
+final class TrainingMetric {
+    var id: UUID
+    var name: String
+    var value: Double
+    var unit: String
+    var session: TrainingSession?
+    
+    init(name: String, value: Double, unit: String, session: TrainingSession?) {
+        self.id = UUID()
+        self.name = name
+        self.value = value
+        self.unit = unit
+        self.session = session
     }
 }
