@@ -197,6 +197,7 @@ struct AddWorkoutTemplateView: View {
         let template = WorkoutTemplate(
             name: workoutName,
             sessionType: sessionType,
+            category: .singleDistance, // Default category, can be made selectable later
             boat: boat,
             isDefault: false
         )

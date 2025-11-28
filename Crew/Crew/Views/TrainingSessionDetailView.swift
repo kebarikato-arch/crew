@@ -66,19 +66,114 @@ struct TrainingSessionDetailView: View {
                     }
                 }
                 
-                Section(header: Text("メトリクス")) {
-                    if session.metrics.isEmpty {
-                        Text("メトリクスがありません")
-                            .foregroundColor(.secondary)
-                    } else {
-                        ForEach(session.metrics) { metric in
+                if let data = session.workoutImageData, let uiImage = UIImage(data: data) {
+                    Section(header: Text("添付画像")) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .cornerRadius(8)
+                            .frame(maxHeight: 240)
+                    }
+                }
+                
+                // Workout Summary
+                if let summary = session.workoutSummary {
+                    Section(header: Text("ワークアウトサマリー")) {
+                        HStack {
+                            Text("総距離")
+                            Spacer()
+                            Text("\(summary.totalDistance) m")
+                                .foregroundColor(.secondary)
+                        }
+                        HStack {
+                            Text("総時間")
+                            Spacer()
+                            Text(summary.formattedElapsedTime)
+                                .foregroundColor(.secondary)
+                        }
+                        HStack {
+                            Text("平均ペース")
+                            Spacer()
+                            Text(summary.formattedPace)
+                                .foregroundColor(.secondary)
+                        }
+                        HStack {
+                            Text("平均SPM")
+                            Spacer()
+                            Text("\(summary.averageSPM, specifier: "%.1f") spm")
+                                .foregroundColor(.secondary)
+                        }
+                        HStack {
+                            Text("平均パワー")
+                            Spacer()
+                            Text("\(summary.averageWatts) W")
+                                .foregroundColor(.secondary)
+                        }
+                        if let restTime = summary.restTime {
                             HStack {
-                                Text(metric.name)
+                                Text("レスト時間")
                                 Spacer()
-                                Text("\(metric.value, specifier: "%.2f") \(metric.unit)")
+                                Text("\(restTime) 秒")
                                     .foregroundColor(.secondary)
                             }
                         }
+                        HStack {
+                            Text("ターゲット値")
+                            Spacer()
+                            Text("\(summary.targetValue)")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    // Split Data
+                    if !summary.splits.isEmpty {
+                        Section(header: Text("スプリットデータ")) {
+                            ForEach(summary.splits.sorted { $0.ordinalNumber < $1.ordinalNumber }) { split in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text("スプリット \(split.ordinalNumber)")
+                                            .font(.headline)
+                                        Spacer()
+                                    }
+                                    HStack {
+                                        Text("距離:")
+                                        Spacer()
+                                        Text("\(split.distance) m")
+                                            .foregroundColor(.secondary)
+                                    }
+                                    HStack {
+                                        Text("経過時間:")
+                                        Spacer()
+                                        Text(split.formattedElapsedTime)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    HStack {
+                                        Text("平均ペース:")
+                                        Spacer()
+                                        Text(split.formattedPace)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    HStack {
+                                        Text("平均SPM:")
+                                        Spacer()
+                                        Text("\(split.averageSPM, specifier: "%.1f") spm")
+                                            .foregroundColor(.secondary)
+                                    }
+                                    HStack {
+                                        Text("平均パワー:")
+                                        Spacer()
+                                        Text("\(split.averageWatts) W")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                    }
+                } else {
+                    Section(header: Text("ワークアウトデータ")) {
+                        Text("データがありません")
+                            .foregroundColor(.secondary)
                     }
                 }
             }
@@ -140,5 +235,6 @@ struct TrainingSessionDetailView: View {
         context.delete(session)
         dismiss()
     }
+    
 }
 

@@ -10,6 +10,6 @@ struct CrewApp: App {
             ContentView()
         }
         // MARK: SwiftDataモデルコンテナにすべてのモデルを指定
-        .modelContainer(for: [Boat.self, RigDataSet.self, RigItem.self, RigItemTemplate.self, CheckListItem.self, TrainingSession.self, TrainingMetric.self, WorkoutTemplate.self, WorkoutMetricTemplate.self])
+        .modelContainer(for: [Boat.self, RigDataSet.self, RigItem.self, RigItemTemplate.self, CheckListItem.self, TrainingSession.self, WorkoutTemplate.self, WorkoutMetricTemplate.self, WorkoutSummary.self, SplitData.self])
     }
 }

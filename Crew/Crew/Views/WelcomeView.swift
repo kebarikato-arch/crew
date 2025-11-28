@@ -109,83 +109,156 @@ struct WelcomeView: View {
     }
     
     private func addDefaultWorkoutTemplates(to boat: Boat) {
-        // エルゴ用デフォルトワークアウト
-        let ergoDefaults = [
-            ("500mタイムトライアル", [
-                ("タイム", "sec", 0),
-                ("ストロークレート", "spm", 1),
-                ("平均パワー", "W", 2)
-            ]),
-            ("2000mテスト", [
-                ("タイム", "min:sec", 0),
-                ("平均ストロークレート", "spm", 1),
-                ("平均パワー", "W", 2),
-                ("最大パワー", "W", 3)
-            ]),
-            ("インターバルトレーニング", [
-                ("セット数", "回", 0),
-                ("インターバル時間", "sec", 1),
-                ("レスト時間", "sec", 2),
-                ("平均パワー", "W", 3)
-            ])
-        ]
+        // 4つのPM5ワークアウトタイプを作成
+        // ユーザーが各タイプのパラメータを設定できるようにする
         
-        // ボート用デフォルトワークアウト
-        let boatDefaults = [
-            ("スプリント練習", [
-                ("距離", "m", 0),
-                ("タイム", "sec", 1),
-                ("ストロークレート", "spm", 2)
-            ]),
-            ("ロングディスタンス", [
-                ("距離", "km", 0),
-                ("タイム", "min", 1),
-                ("平均ストロークレート", "spm", 2)
-            ]),
-            ("テクニック練習", [
-                ("練習時間", "min", 0),
-                ("フォーカス", "text", 1)
-            ])
-        ]
+        // Single Distance
+        let singleDistanceTemplate = WorkoutTemplate(
+            name: "Single Distance",
+            sessionType: .ergo,
+            category: .singleDistance,
+            boat: boat,
+            isDefault: true
+        )
+        singleDistanceTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "目標距離",
+            unit: "m",
+            order: 0,
+            workoutTemplate: singleDistanceTemplate
+        ))
+        boat.workoutTemplates.append(singleDistanceTemplate)
         
-        // エルゴワークアウトを作成
-        for (workoutName, metrics) in ergoDefaults {
-            let template = WorkoutTemplate(
-                name: workoutName,
-                sessionType: .ergo,
-                boat: boat,
-                isDefault: true
-            )
-            for (metricName, unit, order) in metrics {
-                let metricTemplate = WorkoutMetricTemplate(
-                    name: metricName,
-                    unit: unit,
-                    order: order,
-                    workoutTemplate: template
-                )
-                template.metricTemplates.append(metricTemplate)
-            }
-            boat.workoutTemplates.append(template)
-        }
+        // Single Time
+        let singleTimeTemplate = WorkoutTemplate(
+            name: "Single Time",
+            sessionType: .ergo,
+            category: .singleTime,
+            boat: boat,
+            isDefault: true
+        )
+        singleTimeTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "目標時間",
+            unit: "sec",
+            order: 0,
+            workoutTemplate: singleTimeTemplate
+        ))
+        boat.workoutTemplates.append(singleTimeTemplate)
         
-        // ボートワークアウトを作成
-        for (workoutName, metrics) in boatDefaults {
-            let template = WorkoutTemplate(
-                name: workoutName,
-                sessionType: .boat,
-                boat: boat,
-                isDefault: true
-            )
-            for (metricName, unit, order) in metrics {
-                let metricTemplate = WorkoutMetricTemplate(
-                    name: metricName,
-                    unit: unit,
-                    order: order,
-                    workoutTemplate: template
-                )
-                template.metricTemplates.append(metricTemplate)
-            }
-            boat.workoutTemplates.append(template)
-        }
+        // Distance Interval
+        let distanceIntervalTemplate = WorkoutTemplate(
+            name: "Distance Interval",
+            sessionType: .ergo,
+            category: .distanceInterval,
+            boat: boat,
+            isDefault: true
+        )
+        distanceIntervalTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "設定距離",
+            unit: "m",
+            order: 0,
+            workoutTemplate: distanceIntervalTemplate
+        ))
+        distanceIntervalTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "レスト時間",
+            unit: "sec",
+            order: 1,
+            workoutTemplate: distanceIntervalTemplate
+        ))
+        boat.workoutTemplates.append(distanceIntervalTemplate)
+        
+        // Time Interval
+        let timeIntervalTemplate = WorkoutTemplate(
+            name: "Time Interval",
+            sessionType: .ergo,
+            category: .timeInterval,
+            boat: boat,
+            isDefault: true
+        )
+        timeIntervalTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "設定時間",
+            unit: "sec",
+            order: 0,
+            workoutTemplate: timeIntervalTemplate
+        ))
+        timeIntervalTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "レスト時間",
+            unit: "sec",
+            order: 1,
+            workoutTemplate: timeIntervalTemplate
+        ))
+        boat.workoutTemplates.append(timeIntervalTemplate)
+        
+        // ボート用も同様に作成
+        let boatSingleDistanceTemplate = WorkoutTemplate(
+            name: "Single Distance",
+            sessionType: .boat,
+            category: .singleDistance,
+            boat: boat,
+            isDefault: true
+        )
+        boatSingleDistanceTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "目標距離",
+            unit: "m",
+            order: 0,
+            workoutTemplate: boatSingleDistanceTemplate
+        ))
+        boat.workoutTemplates.append(boatSingleDistanceTemplate)
+        
+        let boatSingleTimeTemplate = WorkoutTemplate(
+            name: "Single Time",
+            sessionType: .boat,
+            category: .singleTime,
+            boat: boat,
+            isDefault: true
+        )
+        boatSingleTimeTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "目標時間",
+            unit: "sec",
+            order: 0,
+            workoutTemplate: boatSingleTimeTemplate
+        ))
+        boat.workoutTemplates.append(boatSingleTimeTemplate)
+        
+        let boatDistanceIntervalTemplate = WorkoutTemplate(
+            name: "Distance Interval",
+            sessionType: .boat,
+            category: .distanceInterval,
+            boat: boat,
+            isDefault: true
+        )
+        boatDistanceIntervalTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "設定距離",
+            unit: "m",
+            order: 0,
+            workoutTemplate: boatDistanceIntervalTemplate
+        ))
+        boatDistanceIntervalTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "レスト時間",
+            unit: "sec",
+            order: 1,
+            workoutTemplate: boatDistanceIntervalTemplate
+        ))
+        boat.workoutTemplates.append(boatDistanceIntervalTemplate)
+        
+        let boatTimeIntervalTemplate = WorkoutTemplate(
+            name: "Time Interval",
+            sessionType: .boat,
+            category: .timeInterval,
+            boat: boat,
+            isDefault: true
+        )
+        boatTimeIntervalTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "設定時間",
+            unit: "sec",
+            order: 0,
+            workoutTemplate: boatTimeIntervalTemplate
+        ))
+        boatTimeIntervalTemplate.metricTemplates.append(WorkoutMetricTemplate(
+            name: "レスト時間",
+            unit: "sec",
+            order: 1,
+            workoutTemplate: boatTimeIntervalTemplate
+        ))
+        boat.workoutTemplates.append(boatTimeIntervalTemplate)
     }
 }

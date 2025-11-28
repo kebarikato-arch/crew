@@ -131,21 +131,31 @@ enum SessionType: String, Codable {
     case boat = "ボート"
 }
 
+// MARK: - WorkoutCategory
+enum WorkoutCategory: String, Codable {
+    case singleDistance = "Single Distance"
+    case singleTime = "Single Time"
+    case distanceInterval = "Distance Interval"
+    case timeInterval = "Time Interval"
+}
+
 // MARK: - WorkoutTemplate
 @Model
 final class WorkoutTemplate {
     var id: UUID
     var name: String
     var sessionType: SessionType
+    var category: WorkoutCategory
     var boat: Boat?
     var isDefault: Bool
     @Relationship(deleteRule: .cascade, inverse: \WorkoutMetricTemplate.workoutTemplate)
     var metricTemplates: [WorkoutMetricTemplate] = []
     
-    init(name: String, sessionType: SessionType, boat: Boat?, isDefault: Bool = false) {
+    init(name: String, sessionType: SessionType, category: WorkoutCategory, boat: Boat?, isDefault: Bool = false) {
         self.id = UUID()
         self.name = name
         self.sessionType = sessionType
+        self.category = category
         self.boat = boat
         self.isDefault = isDefault
     }
@@ -169,6 +179,134 @@ final class WorkoutMetricTemplate {
     }
 }
 
+// MARK: - LapData
+@Model
+final class LapData {
+    var id: UUID
+    var lapNumber: Int
+    var lapInterval: Int // 100, 200, or 500 meters
+    var time: Double // seconds
+    var split: String // m:s/500m format
+    var strokeRate: Double // spm
+    var session: TrainingSession?
+    
+    init(lapNumber: Int, lapInterval: Int, time: Double, split: String, strokeRate: Double, session: TrainingSession?) {
+        self.id = UUID()
+        self.lapNumber = lapNumber
+        self.lapInterval = lapInterval
+        self.time = time
+        self.split = split
+        self.strokeRate = strokeRate
+        self.session = session
+    }
+}
+
+// MARK: - IntervalRep
+@Model
+final class IntervalRep {
+    var id: UUID
+    var repNumber: Int
+    var distance: Double // meters
+    var strokeRate: Double // spm
+    var averageSplit: String // m:s/500m format
+    var session: TrainingSession?
+    
+    init(repNumber: Int, distance: Double, strokeRate: Double, averageSplit: String, session: TrainingSession?) {
+        self.id = UUID()
+        self.repNumber = repNumber
+        self.distance = distance
+        self.strokeRate = strokeRate
+        self.averageSplit = averageSplit
+        self.session = session
+    }
+}
+
+// MARK: - WorkoutSummary
+@Model
+final class WorkoutSummary {
+    var id: UUID
+    var totalDistance: Int // meters, integer
+    var totalTime: Int // seconds (work time only, excludes rest)
+    var averagePace: Int // seconds per 500m
+    var averageSPM: Double // strokes per minute
+    var averageWatts: Int // watts, integer
+    var workoutType: WorkoutCategory
+    var targetValue: Int // target distance (m) or time (sec) depending on type
+    var restTime: Int? // seconds, only for intervals
+    var date: Date
+    var session: TrainingSession?
+    @Relationship(deleteRule: .cascade, inverse: \SplitData.summary)
+    var splits: [SplitData] = []
+    
+    init(totalDistance: Int, totalTime: Int, averagePace: Int, averageSPM: Double, averageWatts: Int, workoutType: WorkoutCategory, targetValue: Int, restTime: Int? = nil, date: Date, session: TrainingSession?) {
+        self.id = UUID()
+        self.totalDistance = totalDistance
+        self.totalTime = totalTime
+        self.averagePace = averagePace
+        self.averageSPM = averageSPM
+        self.averageWatts = averageWatts
+        self.workoutType = workoutType
+        self.targetValue = targetValue
+        self.restTime = restTime
+        self.date = date
+        self.session = session
+    }
+    
+    // Computed property for formatted elapsed time (HH:MM:SS)
+    var formattedElapsedTime: String {
+        let hours = totalTime / 3600
+        let minutes = (totalTime % 3600) / 60
+        let seconds = totalTime % 60
+        return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+    }
+    
+    // Computed property for formatted pace (MM:SS / 500m)
+    var formattedPace: String {
+        let minutes = averagePace / 60
+        let seconds = averagePace % 60
+        return String(format: "%02d:%02d / 500m", minutes, seconds)
+    }
+}
+
+// MARK: - SplitData
+@Model
+final class SplitData {
+    var id: UUID
+    var ordinalNumber: Int // index (1, 2, 3, ...)
+    var distance: Int // meters, integer
+    var elapsedTime: Int // seconds
+    var averagePace: Int // seconds per 500m
+    var averageSPM: Double // strokes per minute
+    var averageWatts: Int // watts, integer
+    var summary: WorkoutSummary?
+    
+    init(ordinalNumber: Int, distance: Int, elapsedTime: Int, averagePace: Int, averageSPM: Double, averageWatts: Int, summary: WorkoutSummary?) {
+        self.id = UUID()
+        self.ordinalNumber = ordinalNumber
+        self.distance = distance
+        self.elapsedTime = elapsedTime
+        self.averagePace = averagePace
+        self.averageSPM = averageSPM
+        self.averageWatts = averageWatts
+        self.summary = summary
+    }
+    
+    // Computed property for formatted elapsed time (HH:MM:SS)
+    var formattedElapsedTime: String {
+        let hours = elapsedTime / 3600
+        let minutes = (elapsedTime % 3600) / 60
+        let seconds = elapsedTime % 60
+        return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+    }
+    
+    // Computed property for formatted pace (MM:SS / 500m)
+    var formattedPace: String {
+        let minutes = averagePace / 60
+        let seconds = averagePace % 60
+        return String(format: "%02d:%02d / 500m", minutes, seconds)
+    }
+}
+
 // MARK: - TrainingSession
 @Model
 final class TrainingSession {
@@ -177,12 +315,15 @@ final class TrainingSession {
     var sessionType: SessionType
     var memo: String
     var isShared: Bool
-    @Relationship(deleteRule: .cascade, inverse: \TrainingMetric.session)
-    var metrics: [TrainingMetric] = []
+    /// 保存されたワークアウト画像（例：PM5の写真）
+    @Attribute(.externalStorage)
+    var workoutImageData: Data?
+    @Relationship(deleteRule: .cascade, inverse: \WorkoutSummary.session)
+    var workoutSummary: WorkoutSummary? // One-to-one relationship
     var boat: Boat?
     var workoutTemplate: WorkoutTemplate?
     
-    init(date: Date, sessionType: SessionType, memo: String = "", isShared: Bool = false, boat: Boat?, workoutTemplate: WorkoutTemplate? = nil) {
+    init(date: Date, sessionType: SessionType, memo: String = "", isShared: Bool = false, boat: Boat?, workoutTemplate: WorkoutTemplate? = nil, workoutImageData: Data? = nil) {
         self.id = UUID()
         self.date = date
         self.sessionType = sessionType
@@ -190,6 +331,7 @@ final class TrainingSession {
         self.isShared = isShared
         self.boat = boat
         self.workoutTemplate = workoutTemplate
+        self.workoutImageData = workoutImageData
     }
 }
 

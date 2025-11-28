@@ -195,18 +195,17 @@ struct TrainingSessionRow: View {
                             .lineLimit(1)
                     }
                     
-                    if !session.metrics.isEmpty {
+                    if let summary = session.workoutSummary {
                         HStack(spacing: 8) {
-                            ForEach(session.metrics.prefix(3)) { metric in
-                                Text("\(metric.name): \(metric.value, specifier: "%.1f")\(metric.unit)")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                            if session.metrics.count > 3 {
-                                Text("+\(session.metrics.count - 3)")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
+                            Text("距離: \(summary.totalDistance)m")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            Text("時間: \(summary.formattedElapsedTime)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            Text("ペース: \(summary.formattedPace)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
