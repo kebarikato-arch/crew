@@ -32,8 +32,8 @@ struct SettingView: View {
                 }
                 
                 Section("情報") {
-                    Link("プライバシーポリシー", destination: URL(string: "https://www.example.com/privacy")!)
-                    Link("利用規約", destination: URL(string: "https://www.example.com/terms")!)
+                    Link("プライバシーポリシー", destination: URL(string: "https://kebarikato-arch.github.io/crew/privacy.html")!)
+                    Link("利用規約", destination: URL(string: "https://kebarikato-arch.github.io/crew/terms.html")!)
                 }
             }
             .navigationTitle("設定")
