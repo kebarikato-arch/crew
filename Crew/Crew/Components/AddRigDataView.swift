@@ -72,6 +72,7 @@ struct AddRigDataView: View {
                     }
                 }
             }
+            .environment(\.locale, Locale(identifier: "ja_JP"))
             .navigationTitle(rigDataSet == nil ? "リグデータを記録" : "リグデータを編集")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

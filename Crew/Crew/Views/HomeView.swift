@@ -298,5 +298,18 @@ struct AddBoatView: View {
     private func addBoat() {
         let newBoat = Boat(name: boatName)
         modelContext.insert(newBoat)
+        
+        // デフォルトのリグテンプレートを追加
+        newBoat.addDefaultRigTemplates()
+        
+        // デフォルトのワークアウトテンプレートを追加
+        newBoat.addDefaultWorkoutTemplates()
+        
+        // 保存
+        do {
+            try modelContext.save()
+        } catch {
+            print("ボートの保存に失敗しました: \(error.localizedDescription)")
+        }
     }
 }

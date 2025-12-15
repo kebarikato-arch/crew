@@ -9,6 +9,7 @@ struct RigHistoryDetailView: View {
     // 日付のフォーマットを統一するための準備
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
         formatter.dateStyle = .short
         formatter.timeStyle = .short
         return formatter

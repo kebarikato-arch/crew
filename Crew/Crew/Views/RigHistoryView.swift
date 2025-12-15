@@ -59,11 +59,25 @@ struct RigHistoryRow: View {
     let dataSet: RigDataSet
     let onTap: () -> Void
     
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateStyle = .long
+        return formatter
+    }
+    
+    private var timeFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.timeStyle = .short
+        return formatter
+    }
+    
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text(dataSet.date, style: .date)
+                    Text(dateFormatter.string(from: dataSet.date))
                         .font(.headline)
                     Spacer()
                 }
@@ -82,7 +96,7 @@ struct RigHistoryRow: View {
                     
                     Spacer()
                     
-                    Text(dataSet.date, style: .time)
+                    Text(timeFormatter.string(from: dataSet.date))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

@@ -132,7 +132,7 @@ struct AddTrainingSessionView: View {
                         .lineLimit(3...6)
                     
                     PhotosPicker(selection: $selectedImageItem, matching: .images, photoLibrary: .shared()) {
-                        Label(workoutImageData == nil ? "PM5の写真を添付" : "写真を変更", systemImage: "photo")
+                        Label(workoutImageData == nil ? "写真を添付" : "写真を変更", systemImage: "photo")
                     }
                     .onChange(of: selectedImageItem) { oldItem, newItem in
                         guard let newItem else { return }
@@ -188,6 +188,7 @@ struct AddTrainingSessionView: View {
                     }
                 }
             }
+            .environment(\.locale, Locale(identifier: "ja_JP"))
             .navigationTitle(sessionToEdit == nil ? "トレーニング記録" : "トレーニング編集")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -740,7 +741,7 @@ struct AddTrainingSessionView: View {
         }
         
         // ワークアウトサマリー（作業時間のみ）
-        Section(header: Text("ワークアウトサマリー（作業時間のみ）")) {
+        Section(header: Text("ワークアウトサマリー")) {
             HStack {
                 Text("総距離 (m)")
                 Spacer()

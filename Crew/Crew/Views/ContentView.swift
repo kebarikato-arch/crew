@@ -30,8 +30,8 @@ struct ContentView: View {
     
     private func migrateNewTemplates() {
         let newTemplates = [
-            ("ワークハイトB", "cm", "クラッチ"),
-            ("ワークハイトS", "cm", "クラッチ")
+            ("ワークハイトB", "mm", "クラッチ"),
+            ("ワークハイトS", "mm", "クラッチ")
         ]
         
         for boat in boats {
@@ -114,16 +114,17 @@ struct MainAppView: View {
         TabView {
             HomeView(currentBoat: boatBinding)
                 .tabItem { Label("My Rig", systemImage: "house") }
-
-            CheckListView(currentBoat: boatBinding)
-                .tabItem { Label("Checklist", systemImage: "list.bullet.clipboard.fill") }
+            
+            TrainingView(currentBoat: boatBinding)
+                            .tabItem { Label("Training", systemImage: "figure.outdoor.rowing") }
+            
             
             DataView(currentBoat: boatBinding)
                 .tabItem { Label("Data", systemImage: "chart.xyaxis.line") }
             
-            TrainingView(currentBoat: boatBinding)
-                .tabItem { Label("Training", systemImage: "figure.rowing") }
-            
+            CheckListView(currentBoat: boatBinding)
+                            .tabItem { Label("Checklist", systemImage: "list.bullet.clipboard.fill") }
+
             SettingView(currentBoat: boatBinding)
                 .tabItem { Label("Setting", systemImage: "gear") }
         }

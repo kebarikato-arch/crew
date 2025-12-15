@@ -36,6 +36,13 @@ struct TrainingView: View {
         sessionsByDate.keys.sorted(by: >)
     }
     
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateStyle = .long
+        return formatter
+    }
+    
     var body: some View {
         NavigationStack {
             Group {
@@ -59,7 +66,7 @@ struct TrainingView: View {
                 } else {
                     List {
                         ForEach(sortedDates, id: \.self) { date in
-                            Section(header: Text(date, style: .date)) {
+                            Section(header: Text(dateFormatter.string(from: date))) {
                                 ForEach(sessionsByDate[date] ?? [], id: \.id) { (session: TrainingSession) in
                                     TrainingSessionRow(session: session) {
                                         sessionToEdit = session
@@ -196,14 +203,17 @@ struct TrainingSessionRow: View {
                     }
                     
                     if let summary = session.workoutSummary {
+                        let totalDistance = summary.totalDistance
+                        let elapsedTime = summary.formattedElapsedTime
+                        let pace = summary.formattedPace
                         HStack(spacing: 8) {
-                            Text("距離: \(summary.totalDistance)m")
+                            Text("距離: \(totalDistance)m")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                            Text("時間: \(summary.formattedElapsedTime)")
+                            Text("時間: \(elapsedTime)")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                            Text("ペース: \(summary.formattedPace)")
+                            Text("ペース: \(pace)")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }

@@ -68,7 +68,7 @@ struct RigItemDetailView: View {
         let data = boat.rigDataSets
             .flatMap { dataSet -> [(Date, Double)] in
                 dataSet.rigItems
-                    .filter { $0.template == item.template }
+                    .filter { $0.template === item.template }
                     .map { (dataSet.date, $0.value) }
             }
             .sorted { $0.0 < $1.0 }
@@ -77,3 +77,4 @@ struct RigItemDetailView: View {
         self.chartData = data
     }
 }
+
